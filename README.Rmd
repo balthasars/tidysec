@@ -1,0 +1,40 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# {tidysec}
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of {tidysec} is to facilitate working with filings provided by the American Securities and Exchange Commission. Currently the package only supports 13F-filings.
+
+## Installation
+
+You can install the development version of {tidysec} from [Github](https://github.com/balthasars/tidysec) with:
+
+``` r
+devtools::install_github("balthasars/tidysec")
+```
+
+## Parse a 13F-filing
+
+To parse a 13F-filing you need the link to the filing made to the SEC.
+To obtain the links to all filings of a given company use `get_filings_info()` (not shown here),
+
+```{r example}
+library(tidysec)
+snb_q1_2016_13f <- "https://www.sec.gov/Archives/edgar/data/1582202/000158220216000006/InfoTable_Q12016.xml"
+get_filing(snb_q1_2016_13f)
+```
