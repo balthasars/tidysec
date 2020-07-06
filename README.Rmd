@@ -28,13 +28,47 @@ You can install the development version of {tidysec} from [Github](https://githu
 devtools::install_github("balthasars/tidysec")
 ```
 
-## Parse a 13F-filing
+## Retrieve and parse a 13F-filing
 
-To parse a 13F-filing you need the link to the filing made to the SEC.
-To obtain the links to all filings of a given company use `get_filings_info()` (not shown here),
+Use `get_13f()` for that purpose.
+This function returns the filings as a tibble with a nested data frame column.
 
 ```{r example}
 library(tidysec)
-snb_q1_2016_13f <- "https://www.sec.gov/Archives/edgar/data/1582202/000158220216000006/InfoTable_Q12016.xml"
-get_filing(snb_q1_2016_13f)
+library(magrittr)
+cik_blackrock <- "1364742"
+br_2015 <- get_13f(cik = cik_blackrock, year = 2015, clean_col_names = FALSE, amendments = FALSE)
+br_2015
+```
+
+To work with the filing(s), use `tidyr::unnest()`:
+
+```{r}
+br_2015 %>% 
+  tidyr::unnest(filing)
+```
+
+
+Amendments to 13F filings (13F-HR/A) cannot be parsed yet.
+However, you can still get the link to their .txt file by setting `link_only = TRUE` and `amendments = TRUE`:
+
+```{r}
+cik_blackrock <- "1364742"
+get_13f(cik = cik_blackrock, year = 2015, link_only = TRUE, amendments = TRUE)
+```
+
+
+## Get a list of all SEC filings by a company
+
+Let's say you wanted a list of all of Credit Suisse AG's 2020 company filings. 
+
+```{r}
+cik_credit_suisse <- "824468"
+cs_2019 <- get_list_of_filings(
+  cik = cik_credit_suisse, 
+  year = 2020, 
+  filing_type = "all",
+  clean_col_names = TRUE 
+  )
+cs_2019
 ```
