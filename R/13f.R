@@ -116,107 +116,107 @@ get_filing_meta <- function(link_to_files){
 # test
 # get_filing_meta(test_gltm)
 
-#' List all filings submitted by company to the SEC.
-#'
-#' \code{get_filings_info} searches the EDGAR archive for any
-#' filings a company has submitted over time.
-#'
-#' The function returns a tibble with all meta information about all filings,
-#' links to the filing itself and the meta information.
-#' @param cik Central index key of a company.
-#' @param clean_col_names Remove camel case from column names.
-#' @examples
-#' # Retrieve filings made by the Swiss National Bank
-#' cik_snb <- "0001582202"
-#' get_filings_info(cik = cik_snb, clean_col_names = TRUE)
-#' @export
+# #' List all filings submitted by company to the SEC.
+# #'
+# #' \code{get_filings_info} searches the EDGAR archive for any
+# #' filings a company has submitted over time.
+# #'
+# #' The function returns a tibble with all meta information about all filings,
+# #' links to the filing itself and the meta information.
+# #' @param cik Central index key of a company.
+# #' @param clean_col_names Remove camel case from column names.
+# #' @examples
+# #' # Retrieve filings made by the Swiss National Bank
+# #' cik_snb <- "0001582202"
+# #' get_filings_info(cik = cik_snb, clean_col_names = TRUE)
+# #' @export
 
-get_filings_info <- function(cik, clean_col_names = TRUE) {
-  message(
-    crayon::green("This may take a while..."),
-    crayon::green("so drink a"), emo::ji_glue(" :mug: or :tea:"),
-    crayon::green("while this finishes.")
-  )
+# get_filings_info <- function(cik, clean_col_names = TRUE) {
+#   message(
+#     crayon::green("This may take a while..."),
+#     crayon::green("so drink a"), emo::ji_glue(" :mug: or :tea:"),
+#     crayon::green("while this finishes.")
+#   )
+#
+#   # get links to filings meta
+#   links <- get_links_to_filings(cik)
+#   pb <- progress::progress_bar$new(
+#     total = length(links),
+#     format = "Getting links to meta filings [:bar] :percent eta: eta"
+#   )
+#   links_to_meta <- purrr::map(links, ~ {
+#     pb$tick()
+#     get_link_to_files(.x)
+#   })
+#
+#   # parse meta information and display progress bar
+#   pb <- progress::progress_bar$new(
+#     total = length(links),
+#     format = "Getting meta for all filings [:bar] :percent eta: [eta]"
+#   )
+#   meta_raw <- purrr::map_df(links_to_meta, ~ {
+#     pb$tick()
+#     get_filing_meta(.x)
+#   })
+#
+#   meta_df <- meta_raw %>%
+#     # make date columns
+#     dplyr::mutate_at(vars(periodOfReport, reportCalendarOrQuarter, signatureDate), ~ as.Date(., "%m-%d-%Y"))
+#
+#   # conditionally clean column names
+#   if (clean_col_names) {
+#     meta_df_clean_col_names <- janitor::clean_names(meta_df)
+#     print(meta_df_clean_col_names)
+#   } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
+#     print(meta_df)
+#   }
+# }
 
-  # get links to filings meta
-  links <- get_links_to_filings(cik)
-  pb <- progress::progress_bar$new(
-    total = length(links),
-    format = "Getting links to meta filings [:bar] :percent eta: eta"
-  )
-  links_to_meta <- purrr::map(links, ~ {
-    pb$tick()
-    get_link_to_files(.x)
-  })
-
-  # parse meta information and display progress bar
-  pb <- progress::progress_bar$new(
-    total = length(links),
-    format = "Getting meta for all filings [:bar] :percent eta: [eta]"
-  )
-  meta_raw <- purrr::map_df(links_to_meta, ~ {
-    pb$tick()
-    get_filing_meta(.x)
-  })
-
-  meta_df <- meta_raw %>%
-    # make date columns
-    dplyr::mutate_at(vars(periodOfReport, reportCalendarOrQuarter, signatureDate), ~ as.Date(., "%m-%d-%Y"))
-
-  # conditionally clean column names
-  if (clean_col_names) {
-    meta_df_clean_col_names <- janitor::clean_names(meta_df)
-    print(meta_df_clean_col_names)
-  } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
-    print(meta_df)
-  }
-}
-
-#' Retrieve an SEC filing
-#'
-#' Parses a company's filing
-#' @param link_to_filing Link to company filing.
-#' @param clean_col_names Remove camel case from column names.
-#' @param filing_type Indicate filing type. Only 13F possible, will fail otherwise.
-#' @examples
-#' snb_q1_2016_13f <- "https://www.sec.gov/Archives/edgar/data/1582202/000158220216000006/InfoTable_Q12016.xml"
-#' xml <- get_filing(snb_q1_2016_13f)
-#' @export
-
-get_filing <- function(link_to_filing, filing_type = "13F", clean_col_names = TRUE){
-  assertive::assert_are_set_equal(filing_type, "13F", severity = "stop")
-  # read xml
-  xml <- xml2::read_xml(link_to_filing)
-
-  # # be careful here about xpath syntax! good explanation here: https://www.w3schools.com/xml/xpath_syntax.asp
-  # # Also, there's a risk of accidentally parsing the children of a specific column,
-  # # resulting in the wrong reported values f.e. of the reported shares,
-  # # if you do not look at the raw XML file! — f.e. in Firefox:
-  # # view-source:https://www.sec.gov/Archives/edgar/data/1582202/000158220220000001/InfoTable_Q42019.xml
-  #
-
-  xpaths <- list(
-    issuer = "//ns1:nameOfIssuer",
-    class = "//ns1:titleOfClass",
-    cusip = "//ns1:cusip",
-    value = "//ns1:value",
-    shrsorprnamt = "//ns1:shrsOrPrnAmt/ns1:sshPrnamt",
-    sshprnamttype = "//ns1:shrsOrPrnAmt/ns1:sshPrnamtType",
-    investment_discretion = "//ns1:investmentDiscretion",
-    voting_authority_sole = "//ns1:votingAuthority/ns1:Sole",
-    voting_authority_shared = "//ns1:votingAuthority/ns1:Shared",
-    voting_authority_none = "//ns1:votingAuthority/ns1:None"
-  )
-
-  # iterate over list of xpaths and make data frame
-  filing_df <- purrr::map_df(xpaths, xml_find_all_then_text, nodes = xml)
-
-  # conditionally clean column names
-  if (clean_col_names) {
-    filing_df_clean_col_names <- janitor::clean_names(filing_df)
-    print(filing_df_clean_col_names)
-  } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
-    print(filing_df)
-  }
-
-}
+# #' Retrieve an SEC filing
+# #'
+# #' Parses a company's filing
+# #' @param link_to_filing Link to company filing.
+# #' @param clean_col_names Remove camel case from column names.
+# #' @param filing_type Indicate filing type. Only 13F possible, will fail otherwise.
+# #' @examples
+# #' snb_q1_2016_13f <- "https://www.sec.gov/Archives/edgar/data/1582202/000158220216000006/InfoTable_Q12016.xml"
+# #' xml <- get_filing(snb_q1_2016_13f)
+# #' @export
+#
+# get_filing <- function(link_to_filing, filing_type = "13F", clean_col_names = TRUE){
+#   assertive::assert_are_set_equal(filing_type, "13F", severity = "stop")
+#   # read xml
+#   xml <- xml2::read_xml(link_to_filing)
+#
+#   # # be careful here about xpath syntax! good explanation here: https://www.w3schools.com/xml/xpath_syntax.asp
+#   # # Also, there's a risk of accidentally parsing the children of a specific column,
+#   # # resulting in the wrong reported values f.e. of the reported shares,
+#   # # if you do not look at the raw XML file! — f.e. in Firefox:
+#   # # view-source:https://www.sec.gov/Archives/edgar/data/1582202/000158220220000001/InfoTable_Q42019.xml
+#   #
+#
+#   xpaths <- list(
+#     issuer = "//ns1:nameOfIssuer",
+#     class = "//ns1:titleOfClass",
+#     cusip = "//ns1:cusip",
+#     value = "//ns1:value",
+#     shrsorprnamt = "//ns1:shrsOrPrnAmt/ns1:sshPrnamt",
+#     sshprnamttype = "//ns1:shrsOrPrnAmt/ns1:sshPrnamtType",
+#     investment_discretion = "//ns1:investmentDiscretion",
+#     voting_authority_sole = "//ns1:votingAuthority/ns1:Sole",
+#     voting_authority_shared = "//ns1:votingAuthority/ns1:Shared",
+#     voting_authority_none = "//ns1:votingAuthority/ns1:None"
+#   )
+#
+#   # iterate over list of xpaths and make data frame
+#   filing_df <- purrr::map_df(xpaths, xml_find_all_then_text, nodes = xml)
+#
+#   # conditionally clean column names
+#   if (clean_col_names) {
+#     filing_df_clean_col_names <- janitor::clean_names(filing_df)
+#     print(filing_df_clean_col_names)
+#   } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
+#     print(filing_df)
+#   }
+#
+# }
