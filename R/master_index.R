@@ -171,10 +171,11 @@ subset_master_indices <- function(master_index_dt, form_type_in = NULL, cik_comp
 # get_master_indices_for_single_year(2014) %>%
 #   subset_master_indices(form_type_in = NULL, cik_company = "1364742")
   # .[form_type %in% "13F-HR"]
-#
-# get_master_indices_for_single_year(2014) %>%
-#   subset_master_indices(form_type_in = c("13F-HR", "13F-HR/A"), cik_company = "1364742")
-#
+
+# test_df <- get_master_indices_for_single_year(2020) %>%
+#   subset_master_indices(form_type_in = c("13F-HR", "13F-HR/A"), cik_company = "1649647")
+# test_df %>%
+#   get_13f_link_test()
 
 # helper for `get_13f_link()`
 # search for xml info table file.
@@ -185,17 +186,39 @@ check_for_and_get_xml_infotable_file <- function(link_to_filing_dir, link_to_fil
   ) %>%
     xml2::xml_find_all("item/name") %>%
     xml2::xml_text()
-  # print(file_names)
 
-  result_of_check <- grep(pattern = "InfoTable.*xml", x = file_names)
+  file_names
+
+  # result_of_check <- grep(pattern = "InfoTable.*xml", x = file_names)
+  result_of_check <- file_names %>%
+    .[endsWith(x = ., "xml")] %>%
+    .[stringr::str_detect(string = ., pattern = "primary_doc", negate = TRUE)]
+
   # if there a regex match for `InfoTable.xml` in the filenames,
   # subset to that position in the vector, otherwise
   if (!rlang::is_empty(result_of_check)) {
-    file_names[result_of_check]
+    # file_names[result_of_check]
+    result_of_check
   } else {
     link_to_filing_txt
   }
 }
+
+# test_df <- get_master_indices_for_single_year(2020) %>%
+#   subset_master_indices(form_type_in = c("13F-HR", "13F-HR/A"), cik_company = "1615423")
+# test_df %>%
+#   get_13f_link_test()
+
+# test new version
+## "https://www.sec.gov/Archives/edgar/data/1615423/000142050620001209/index.xml" %>%
+## "https://www.sec.gov/Archives/edgar/data/1535602/000153560220000005/index.xml" %>%
+## "https://www.sec.gov/Archives/edgar/data/1114446/000095012314011529/index.xml" %>%
+# "https://www.sec.gov/Archives/edgar/data/1544599/000154459920000007/index.xml" %>%
+#   check_for_and_get_xml_infotable_file() %>%
+#   .[endsWith(x = ., "xml")] %>%
+#   .[stringr::str_detect(string = ., pattern = "primary_doc", negate = TRUE)]
+
+
 
 construct_path_to_13f_filing <- function(link_to_filing, link_to_filing_dir) {
   dplyr::if_else(
@@ -232,7 +255,7 @@ get_13f_link <- function(list_of_all_filings, forms) {
     ))
 
   # print(list_of_filings_plus_xml_link)
-
+  #
   # Construct full path to XML files with filings
   full_path_links <- list_of_filings_plus_xml_link %>%
     dplyr::mutate(link_to_filing = construct_path_to_13f_filing(link_to_filing, link_to_filing_dir)) %>%
