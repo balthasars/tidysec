@@ -362,6 +362,9 @@ get_list_of_filings <- function(cik, year, filing_type = "all", clean_col_names 
 
 # functions to parse the filing
 
+# GET request to SEC server, memoised
+ua <- httr::user_agent("https://github.com/balthasars/tidysec")
+
 # get namespace of 13F XML docs
 get_13f_ns <- function(xml) {
   xml2::xml_ns(xml) %>%
@@ -373,8 +376,38 @@ get_13f_ns <- function(xml) {
 
 # make tibble from XML document
 parse_13f_submission_xml <- function(xml_link) {
+
+  temporary_file_path <- tempfile()
+  http_get_filing <- function(url_input) {
+    httr::RETRY(
+      verb = "GET", times = 5,
+      url = url_input,
+      httr::accept_xml(), ua,
+      httr::write_disk(
+        path = temporary_file_path
+      )
+    )
+  }
+  mem_http_get_filing <- memoise::memoise(http_get_filing, cache = cache_fs)
+
+  request_response <- mem_http_get_filing(xml_link)
+
+  if (httr::status_code(request_response) != 200) {
+    stop(
+      sprintf(
+        "Uh-oh, the request failed [%s]\n%s\n<%s>",
+        httr::status_code(request_response)
+      ),
+      call. = FALSE
+    )
+  }
+
   # read xml
-  sec_meta_xml_raw <- xml2::read_xml(xml_link)
+  sec_meta_xml_raw <- xml2::read_xml(temporary_file_path)
+
+  retry::retry(expr = sec_meta_xml_raw <- xml2::read_xml(temporary_file_path), when = !exists(temporary_file_path))
+
+  head(sec_meta_xml_raw)
   # get name space
   ns <- get_13f_ns(sec_meta_xml_raw)
   # get children of
@@ -400,24 +433,38 @@ parse_13f_submission_xml <- function(xml_link) {
   # # resulting in the wrong reported values f.e. of the reported shares,
   # # if you do not look at the raw XML file! — f.e. in Firefox:
   # # view-source:https://www.sec.gov/Archives/edgar/data/1582202/000158220220000001/InfoTable_Q42019.xml
-  #
-  positions <- tibble(
-    issuer = get_xml_values("nameOfIssuer"),
-    class = get_xml_values("titleOfClass"),
-    cusip = get_xml_values("cusip"),
-    value = get_xml_values("value"),
-    shrsorprnamt = get_xml_values("shrsOrPrnAmt/sshPrnamt"),
-    sshprnamttype = get_xml_values("shrsOrPrnAmt/sshPrnamtType"),
-    investment_discretion = get_xml_values("investmentDiscretion"),
-    voting_authority_sole = get_xml_values("votingAuthority/Sole"),
-    voting_authority_shared = get_xml_values("votingAuthority/Shared"),
-    voting_authority_none = get_xml_values("votingAuthority/None")
-  ) %>%
-    dplyr::mutate(dplyr::across(c(value, shrsorprnamt, tidyselect::starts_with("voting")), as.numeric))
 
-  positions
+  parse_raw_xml <- function(){
+    positions <- tibble(
+      issuer = get_xml_values("nameOfIssuer"),
+      class = get_xml_values("titleOfClass"),
+      cusip = get_xml_values("cusip"),
+      value = get_xml_values("value"),
+      shrsorprnamt = get_xml_values("shrsOrPrnAmt/sshPrnamt"),
+      sshprnamttype = get_xml_values("shrsOrPrnAmt/sshPrnamtType"),
+      investment_discretion = get_xml_values("investmentDiscretion"),
+      voting_authority_sole = get_xml_values("votingAuthority/Sole"),
+      voting_authority_shared = get_xml_values("votingAuthority/Shared"),
+      voting_authority_none = get_xml_values("votingAuthority/None")
+    ) %>%
+      dplyr::mutate(dplyr::across(c(value, shrsorprnamt, tidyselect::starts_with("voting")), as.numeric))
+    positions
+  }
+  positions_output <- parse_raw_xml()
+
+  positions_output
+  # nrow(positions_output)
+  # unlink(temporary_file_path)
+
+  # if(nrow(positions_output) > 0){
+  #   return(positions_output)
+  # } else if (nrow(positions_output) == 0){
+  #   retry::retry(expr = parse_raw_xml(), until = function(val, cnd) nrow(val) > 0)
+  # }
+  # print("positions")
+  # positions
+
 }
-
 
 
 #' Retrieve a 13F filing.
@@ -444,11 +491,12 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
 
   # conditionally ex- or include amendments to 13F-HR
   if (amendments) {
-    filing_type_var <- c("13F-HR/A","13F-HR")
+    filing_type_var <- c("13F-HR/A", "13F-HR")
   } else if (isFALSE(amendments)) {
     filing_type_var <- "13F-HR"
   }
   # browser()
+  Sys.sleep(2)
 
   # make list of filings and conditionally subset
   filings_df <- get_list_of_filings(cik = cik, year = year, filing_type = filing_type_var)
@@ -461,7 +509,6 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
       ) %>%
       select(-filename) %>%
       tibble::as_tibble()
-
   } else if (isFALSE(link_only)) {
 
     # make links to 13F XML
