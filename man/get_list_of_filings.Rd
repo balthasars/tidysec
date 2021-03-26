@@ -11,6 +11,8 @@ get_list_of_filings(cik, year, filing_type = "all", clean_col_names = TRUE)
 
 \item{year}{Which year or time period of filings.}
 
+\item{filing_type}{Type of filing, defaults to all.}
+
 \item{clean_col_names}{Remove camel case from column names. Defaults to TRUE.
 # Retrieve all filings made by the Swiss National Bank in 2013.
 swiss_national_bank_cik <- "1582202"
@@ -19,8 +21,6 @@ Retrieve meta information about 13F-HR but not 13F-HR/A filings by BlackRock and
 ubs_cik <- "1114446"
 blackrock_cik <- "1364742"
 get_list_of_filings(cik = c(blackrock_cik, ubs_cik), year = 2014:2016, filing_type = "13F-HR")}
-
-\item{filing}{Type of filing, defaults to all.}
 }
 \description{
 \code{get_list_of_filings} searches the EDGAR archive for any

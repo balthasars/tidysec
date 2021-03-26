@@ -144,14 +144,14 @@ subset_master_indices <- function(master_index_dt, form_type_in = NULL, cik_comp
     links <- master_index_dt %>%
       # dtplyr::lazy_dt() %>%
       dplyr::filter(cik %in% cik_company)
-      # tibble::as_tibble()
+      # dplyr::as_tibble()
 
   } else {
     # must be `&` not `,` to concatenate conditions!
     links <- master_index_dt %>%
       # dtplyr::lazy_dt() %>%
       dplyr::filter(form_type %in% form_type_in & cik %in% cik_company)
-      # tibble::as_tibble()
+      # dplyr::as_tibble()
       # master_index_dt[form_type %in% form_type_in & cik %in% cik_company] %>%
       # as_tibble()
   }
@@ -204,8 +204,30 @@ check_for_and_get_xml_infotable_file <- function(link_to_filing_dir, link_to_fil
   }
 }
 
+# helper for `get_13f_meta_link()`
+# search for xml primary_doc file.
+check_for_and_get_xml_primary_doc_file <- function(link_to_filing_dir, link_to_filing_txt) {
+
+    file_names <- get_check_parse_xml(link_to_filing_dir) %>%
+    xml2::xml_find_all("item/name") %>%
+    xml2::xml_text()
+
+  result_of_check <- file_names %>%
+    .[stringr::str_detect(string = ., pattern = "primary_doc")]
+
+  # if there a regex match for `primary_doc` in the filenames,
+  # subset to that position in the vector, otherwise
+  if (!rlang::is_empty(result_of_check)) {
+    paste0(dirname(link_to_filing_dir), "/", result_of_check)
+  } else {
+    NULL
+  }
+}
+
 # test_df <- get_master_indices_for_single_year(2020) %>%
 #   subset_master_indices(form_type_in = c("13F-HR", "13F-HR/A"), cik_company = "1615423")
+
+
 # test_df %>%
 #   get_13f_link_test()
 
@@ -214,9 +236,9 @@ check_for_and_get_xml_infotable_file <- function(link_to_filing_dir, link_to_fil
 ## "https://www.sec.gov/Archives/edgar/data/1535602/000153560220000005/index.xml" %>%
 ## "https://www.sec.gov/Archives/edgar/data/1114446/000095012314011529/index.xml" %>%
 # "https://www.sec.gov/Archives/edgar/data/1544599/000154459920000007/index.xml" %>%
-#   check_for_and_get_xml_infotable_file() %>%
-#   .[endsWith(x = ., "xml")] %>%
-#   .[stringr::str_detect(string = ., pattern = "primary_doc", negate = TRUE)]
+#   check_for_and_get_xml_primary_doc_file()
+  # .[endsWith(x = ., "xml")] %>%
+  # .[stringr::str_detect(string = ., pattern = "primary_doc", negate = TRUE)]
 
 
 
@@ -263,6 +285,33 @@ get_13f_link <- function(list_of_all_filings, forms) {
 
   full_path_links
 }
+
+get_13f_meta_link <- function(list_of_all_filings, forms) {
+
+  # construct links to directories containing filings
+  links_to_filing_dirs <- list_of_all_filings %>%
+    dplyr::mutate(link_to_filing_dir = construct_link_to_filing_directory(
+      dt = list_of_all_filings, xml_index = TRUE))
+
+  # Get links to `InfoTable` files if any XML documents are found in
+  # a filing directory using `check_for_and_get_xml_infotable_file()`.
+  # Otherwise, a txt file is returned.
+  list_of_filings_plus_xml_link <- links_to_filing_dirs %>%
+    dplyr::mutate(link_to_filing = purrr::map2_chr(
+      link_to_filing_dir, filename,
+      check_for_and_get_xml_primary_doc_file
+    ))
+
+  print(list_of_filings_plus_xml_link)
+  #
+  # Construct full path to XML files with filings
+  full_path_links <- list_of_filings_plus_xml_link %>%
+    dplyr::mutate(link_to_filing = construct_path_to_13f_filing(link_to_filing, link_to_filing_dir)) %>%
+    dplyr::select(-c(filename, link_to_filing_dir))
+
+  full_path_links
+}
+
 
 # parse_13f <- function(link_to_filing, clean_col_names = TRUE){
 #
@@ -314,7 +363,7 @@ get_13f_link <- function(list_of_all_filings, forms) {
 #' The function returns a tibble with the .txt links to a company's filings,
 #' some meta information for said filings itself and the meta information.
 #' @param cik Central index key of a company.
-#' @param filing Type of filing, defaults to all.
+#' @param filing_type Type of filing, defaults to all.
 #' @param year Which year or time period of filings.
 #' @param clean_col_names Remove camel case from column names. Defaults to TRUE.
 # #' @examples
@@ -331,7 +380,7 @@ get_13f_link <- function(list_of_all_filings, forms) {
 get_list_of_filings <- function(cik, year, filing_type = "all", clean_col_names = TRUE) {
 
   # conditionally replace `filing_type` argument for helper functions
-  if(filing_type == "all"){
+  if(any(filing_type %in% "all")){
     filing_type_arg <- NULL
   } else {
     filing_type_arg <- filing_type
@@ -344,7 +393,7 @@ get_list_of_filings <- function(cik, year, filing_type = "all", clean_col_names 
     cik_company = cik,
     form_type_in = filing_type_arg
     ) %>%
-    tibble::as_tibble()
+    dplyr::as_tibble()
 
   # conditionally clean column names
   if (clean_col_names) {
@@ -352,6 +401,7 @@ get_list_of_filings <- function(cik, year, filing_type = "all", clean_col_names 
   } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
     subset_list
   }
+  subset_list
 }
 
 # cik_ubs <- "1114446"
@@ -377,37 +427,40 @@ get_13f_ns <- function(xml) {
 # make tibble from XML document
 parse_13f_submission_xml <- function(xml_link) {
 
-  temporary_file_path <- tempfile()
-  http_get_filing <- function(url_input) {
-    httr::RETRY(
-      verb = "GET", times = 5,
-      url = url_input,
-      httr::accept_xml(), ua,
-      httr::write_disk(
-        path = temporary_file_path
-      )
-    )
-  }
-  mem_http_get_filing <- memoise::memoise(http_get_filing, cache = cache_fs)
-
-  request_response <- mem_http_get_filing(xml_link)
-
-  if (httr::status_code(request_response) != 200) {
-    stop(
-      sprintf(
-        "Uh-oh, the request failed [%s]\n%s\n<%s>",
-        httr::status_code(request_response)
-      ),
-      call. = FALSE
-    )
-  }
+  # temporary_file_path <- tempfile()
+  # http_get_filing <- function(url_input) {
+  #   httr::RETRY(
+  #     verb = "GET",
+  #     url = url_input,
+  #     httr::accept_xml(), ua,
+  #     httr::write_disk(
+  #       path = temporary_file_path
+  #     )
+  #   )
+  # }
+  # # mem_http_get_filing <- memoise::memoise(http_get_filing, cache = cache_fs)
+  #
+  # request_response <- http_get_filing(xml_link)
+  #
+  # if (httr::status_code(request_response) != 200) {
+  #   stop(
+  #     sprintf(
+  #       "Uh-oh, the request failed [%s]\n%s\n<%s>",
+  #       httr::status_code(request_response)
+  #     ),
+  #     call. = FALSE
+  #   )
+  # }
+  #
+  # print("Now parsing", xml_link)
+  #
+  # retry::retry(expr = sec_meta_xml_raw <- xml2::read_xml(temporary_file_path), when = !exists(temporary_file_path))
 
   # read xml
-  sec_meta_xml_raw <- xml2::read_xml(temporary_file_path)
+  sec_meta_xml_raw <- xml2::read_xml(xml_link)
 
-  retry::retry(expr = sec_meta_xml_raw <- xml2::read_xml(temporary_file_path), when = !exists(temporary_file_path))
 
-  head(sec_meta_xml_raw)
+  # head(sec_meta_xml_raw)
   # get name space
   ns <- get_13f_ns(sec_meta_xml_raw)
   # get children of
@@ -435,7 +488,7 @@ parse_13f_submission_xml <- function(xml_link) {
   # # view-source:https://www.sec.gov/Archives/edgar/data/1582202/000158220220000001/InfoTable_Q42019.xml
 
   parse_raw_xml <- function(){
-    positions <- tibble(
+    positions <- tibble::tibble(
       issuer = get_xml_values("nameOfIssuer"),
       class = get_xml_values("titleOfClass"),
       cusip = get_xml_values("cusip"),
@@ -447,13 +500,14 @@ parse_13f_submission_xml <- function(xml_link) {
       voting_authority_shared = get_xml_values("votingAuthority/Shared"),
       voting_authority_none = get_xml_values("votingAuthority/None")
     ) %>%
-      dplyr::mutate(dplyr::across(c(value, shrsorprnamt, tidyselect::starts_with("voting")), as.numeric))
+      dplyr::mutate(dplyr::across(c(value, shrsorprnamt, tidyselect::starts_with("voting")), as.numeric)) %>%
+      dplyr::mutate(filing_number =  dirname(xml_link) %>% basename())
     positions
   }
   positions_output <- parse_raw_xml()
 
+  # print(nrow(positions_output))
   positions_output
-  # nrow(positions_output)
   # unlink(temporary_file_path)
 
   # if(nrow(positions_output) > 0){
@@ -466,25 +520,159 @@ parse_13f_submission_xml <- function(xml_link) {
 
 }
 
+parse_13f_meta_xml <- function(link_to_primary_doc){
 
-#' Retrieve a 13F filing.
+  # read document with information about filing
+
+  # TODO: add checks for HTTP error codes
+  # response <- httr::GET(link)
+  # parsed <- httr::content(response, as = "text", encoding = "UTF-8")
+
+  meta_doc_xml <- xml2::read_xml(link_to_primary_doc)
+  xml2::xml_ns_strip(meta_doc_xml)
+
+  # meta-information of interest for a given filing
+  xpaths <- list(
+    submissionType = "//headerData/submissionType",
+    cik = "//filer/credentials/cik",
+    filingManager = "//formData/coverPage/filingManager/name",
+    reportType = "//formData/coverPage/reportType",
+    periodOfReport = "//periodOfReport",
+    reportCalendarOrQuarter = "//formData/coverPage/reportCalendarOrQuarter",
+    form13FFileNumber = "//formData/coverPage/form13FFileNumber",
+    stateOrCountry = "//signatureBlock/stateOrCountry",
+    signatureDate = "//signatureBlock/signatureDate",
+    tableEntryTotal = "//summaryPage/tableEntryTotal",
+    tableValueTotal = "//summaryPage/tableValueTotal",
+    otherIncludedManagersCount = "//summaryPage/otherIncludedManagersCount",
+    otherManagers2Info = "//summaryPage/otherManagers2Info"
+  )
+
+  # iterate over xpaths and create a wide tibble
+  purrr::map(xpaths, xml_find_all_then_text, nodes = meta_doc_xml) %>%
+    tibble::enframe() %>%
+    tidyr::unnest(value) %>%
+    tidyr::pivot_wider() %>%
+    # add link to primary doc
+    dplyr::mutate(link_to_primary_doc = link_to_primary_doc) %>%
+    # add filing number to join with actual filing
+    dplyr::mutate(filing_number =  dirname(link_to_primary_doc) %>% basename())
+}
+
+parse_13f_meta_other_managers_included_xml <- function(link_to_primary_doc){
+
+  # read document with information about filing
+
+  # TODO: add checks for HTTP error codes
+  # response <- httr::GET(link)
+  # parsed <- httr::content(response, as = "text", encoding = "UTF-8")
+
+  meta_doc_xml <- xml2::read_xml(link_to_primary_doc) %>%
+    xml2::xml_ns_strip()
+
+  # meta-information of interest for a given filing
+  xpaths <- list(
+    # cik = "//filer/credentials/cik",
+    # periodOfReport = "//periodOfReport",
+    # reportCalendarOrQuarter = "//formData/coverPage/reportCalendarOrQuarter",
+    # otherIncludedManagersCount = "//summaryPage/otherIncludedManagersCount",
+    # otherManagers2InfootherManager = "//coverPage/otherManagersInfo/otherManager"
+    otherManagersInfootherManagerform13FFileNumber = "//coverPage/otherManagersInfo/otherManager/form13FFileNumber",
+    otherManagersInfootherManagerform13Fname = "//coverPage/otherManagersInfo/otherManager/name"
+  )
+
+  # iterate over xpaths and create a wide tibble
+  purrr::map_df(xpaths, xml_find_all_then_text, nodes = meta_doc_xml) %>%
+    dplyr::mutate(link_to_primary_doc = link_to_primary_doc)
+}
+
+# "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
+#   parse_13f_meta_other_managers_included_xml()
+
+parse_13f_meta_other_managers_xml <- function(link_to_primary_doc){
+
+  # read document with information about filing
+
+  # TODO: add checks for HTTP error codes
+  # response <- httr::GET(link)
+  # parsed <- httr::content(response, as = "text", encoding = "UTF-8")
+
+  meta_doc_xml <- xml2::read_xml(link_to_primary_doc) %>%
+    xml2::xml_ns_strip()
+
+  # meta-information of interest for a given filing
+  xpaths <- list(
+    otherManagerName = "//summaryPage/otherManagers2Info/otherManager2/otherManager/name",
+    otherManagerForm13FFileNumber = "//summaryPage/otherManagers2Info/otherManager2/otherManager/form13FFileNumber"
+
+  )
+
+  # iterate over xpaths and create a wide tibble
+  purrr::map_df(xpaths, xml_find_all_then_text, nodes = meta_doc_xml) %>%
+    dplyr::mutate(link_to_primary_doc = link_to_primary_doc)
+}
+
+# "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
+# parse_13f_meta_other_managers_xml()
+#
+# "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
+#   xml2::read_xml() %>%
+#   xml2::xml_ns_strip() %>%
+#   xml2::xml_find_all("//coverPage/otherManagersInfo")
+#
+# "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
+#   xml2::read_xml() %>%
+#   xml_find_all_then_text()
+#
+# "https://www.sec.gov/Archives/edgar/data/1364742/000108636415002125/primary_doc.xml" %>%
+#   xml2::read_xml() %>%
+#   xml2::xml_find_all("//.") %>%
+#   xml2::xml_find_all(".")
+#
+# "https://www.sec.gov/Archives/edgar/data/1364742/000108636415002125/primary_doc.xml" %>%
+#   xml2::read_xml() %>%
+#   xml2::xml_find_all("*")
+#
+# "https://www.sec.gov/Archives/edgar/data/1364742/000108636415002125/primary_doc.xml" %>%
+#   xml2::read_xml() %>%
+#   xml2::xml_find_all("//*/liveTestFlag")
+#
+# "https://www.sec.gov/Archives/edgar/data/1364742/000108636415002125/primary_doc.xml" %>%
+#   xml2::read_xml() %>%
+#   xml2::xml_find_all("./liveTestFlag")
+#
+# "https://www.sec.gov/Archives/edgar/data/1364742/000108636415002125/primary_doc.xml" %>%
+#   # parse_13f_meta_xml() %>%
+#   xml2::read_xml() %>%
+#   xml2::xml_ns_strip()
+
+  # get_13f_ns <- function(xml) {
+  #   xml2::xml_ns(xml) %>%
+  #     tibble::enframe() %>%
+  #     dplyr::filter(stringr::str_detect(value, "sec.gov")) %>%
+  #     dplyr::sample_n(1) %>%
+  #     dplyr::pull(name)
+  # }
+
+#' Retrieve Meta Information for a 13F filing.
 #'
-#' \code{get_13f} retrieves and parses a company's 13F filings or the links to the filings.
-#' @param link_to_filing Link to company filing.
+#' \code{get_13f_meta} retrieves and parses a company's 13F filings or the links to the filings.
+#' @param cik Central index key of a company.
+#' @param year Which year or time period of filings.
 #' @param clean_col_names Remove camel case from column names.
 #' @param amendments Include 13F-HR/A when retrieving — only works when \code{link_only = TRUE}. Defaults to FALSE.
 #' @param link_only Do not retrieve full filing but only link to it.
 #' @examples
 #' # Get and parse BlackRock's 2015 13F filings.
 #' cik_blackrock <- "1364742"
-#' get_13f(cik = cik_blackrock, year = 2015, clean_col_names = TRUE, link_only = FALSE)
+#' get_13f_meta(cik = cik_blackrock, year = 2015, clean_col_names = TRUE, link_only = FALSE)
 #' # Get the links to the Swiss National Bank's 2016 to 2019 filings.
 #' cik_snb <- "1582202"
-#' get_13f(cik = cik_snb, year = 2016:2019, amendments = TRUE, clean_col_names = TRUE, link_only = TRUE)
+#' get_13f_meta(cik = cik_snb, year = 2016:2019, amendments = TRUE, clean_col_names = TRUE, link_only = TRUE)
 
 #' @export
 
-get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_only = FALSE) {
+get_13f_meta <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_only = FALSE) {
   assertive::assert_is_not_null(cik, severity = "stop")
   assertive::assert_is_not_null(year, severity = "stop")
   assertive::assert_is_not_null(amendments, severity = "stop")
@@ -495,8 +683,8 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
   } else if (isFALSE(amendments)) {
     filing_type_var <- "13F-HR"
   }
-  # browser()
-  Sys.sleep(2)
+
+  Sys.sleep(5)
 
   # make list of filings and conditionally subset
   filings_df <- get_list_of_filings(cik = cik, year = year, filing_type = filing_type_var)
@@ -508,20 +696,20 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
         link_to_filing = paste0("https://www.sec.gov/Archives/", filename)
       ) %>%
       select(-filename) %>%
-      tibble::as_tibble()
+      dplyr::as_tibble()
   } else if (isFALSE(link_only)) {
 
     # make links to 13F XML
-    links_to_13f <- get_13f_link(filings_df)
+    links_to_13f <- get_13f_meta_link(filings_df)
     message(crayon::bgYellow("Now parsing filings..."))
 
-    filings <- links_to_13f %>%
-      dplyr::filter(endsWith(x = link_to_filing, suffix = "xml")) %>%
-      dplyr::mutate(filing = purrr::map(link_to_filing, parse_13f_submission_xml)) %>%
-      tibble::as_tibble()
-
-    message(emo::ji_glue(":+1:"), "Those filings are ready now, hehe.")
-    return(filings)
+    # filings <- links_to_13f %>%
+    #   dplyr::filter(endsWith(x = link_to_filing, suffix = "xml")) %>%
+    #   dplyr::mutate(filing = purrr::map(link_to_filing, parse_13f_meta_xml)) %>%
+    #   dplyr::as_tibble()
+    #
+    # message(emo::ji_glue(":+1:"), "Those filings are ready now, hehe.")
+    # return(filings)
   }
   # # parse contents in link
   # filings <- links_to_13f %>%
@@ -538,8 +726,98 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
   # }
 }
 
+
 # cik_blackrock <- "1364742"
-# get_13f(cik = cik_blackrock, year = 2015, amendments = FALSE, clean_col_names = TRUE, link_only = TRUE)
+# get_13f_meta(cik = cik_blackrock, year = 2015, amendments = FALSE, clean_col_names = TRUE)
+
+
+#' Retrieve 13F filings
+#'
+#' \code{get_13f} retrieves and parses a company's 13F filings along with meta information or the links to the filings.
+#' @param cik Central Index Key for filing entity, see https://www.sec.gov/edgar/searchedgar/companysearch.html
+#' @param year Year for which filings should be retrieved.
+#' @param clean_col_names Remove camel case from column names.
+#' @param amendments Include 13F-HR/A when retrieving — only works when \code{link_only = TRUE}. Defaults to FALSE.
+#' @param link_only Do not retrieve full filing but only link to it.
+#' @examples
+#' # Get and parse BlackRock's 2015 13F filings.
+#' cik_blackrock <- "1364742"
+#' get_13f(cik = cik_blackrock, year = 2015,
+#' clean_col_names = TRUE, link_only = FALSE)
+#' # Get the links to the Swiss National Bank's 2016 to 2019 filings.
+#' cik_snb <- "1582202"
+#' snb <- get_13f(cik = cik_snb, year = 2016:2019,
+#' amendments = TRUE, clean_col_names = TRUE, link_only = TRUE)
+
+#' @export
+
+get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_only = FALSE) {
+  assertive::assert_is_not_null(cik, severity = "stop")
+  assertive::assert_is_not_null(year, severity = "stop")
+  assertive::assert_is_not_null(amendments, severity = "stop")
+
+  # conditionally ex- or include amendments to 13F-HR
+  if (amendments) {
+    filing_type_var <- c("13F-HR/A", "13F-HR")
+  } else if (isFALSE(amendments)) {
+    filing_type_var <- "13F-HR"
+  }
+  # browser()
+  Sys.sleep(3)
+
+  # make list of filings and conditionally subset
+  filings_df <- get_list_of_filings(cik = cik, year = year, filing_type = filing_type_var)
+
+  # conditional for when only the link is requested
+  if (link_only) {
+    filings_df %>%
+      mutate(
+        link_to_filing = paste0("https://www.sec.gov/Archives/", filename)
+      ) %>%
+      select(-filename) %>%
+      dplyr::as_tibble()
+  } else if (isFALSE(link_only)) {
+
+    # make links to 13F XML
+    links_to_13f <- get_13f_link(filings_df)
+    message(crayon::bgYellow("Now parsing filings..."))
+
+    filings <- links_to_13f %>%
+      dplyr::filter(endsWith(x = link_to_filing, suffix = "xml")) %>%
+      dplyr::mutate(filing = purrr::map(link_to_filing, parse_13f_submission_xml)) %>%
+      dplyr::mutate(filing_number =  dirname(link_to_filing) %>% basename())
+      dplyr::as_tibble()
+
+    # get primary_doc
+    # TODO: set `filing_type` to `filing_type_var`
+    list_of_filings <- get_list_of_filings(cik = cik, year = year, filing_type = filing_type_var)
+    primary_docs <- construct_link_to_filing_directory(dt = list_of_filings, xml_index = TRUE) %>%
+      purrr::map_chr(check_for_and_get_xml_primary_doc_file) %>%
+      purrr::map_df(parse_13f_meta_xml) %>%
+      select(-cik)
+
+    # primary_docs
+
+    filings_plus_meta <- left_join(filings, primary_docs, by = c("filing_number"))
+#
+#     message(emo::ji_glue(":+1:"), "Those filings are ready now, hehe.")
+    return(filings_plus_meta)
+  }
+  # # parse contents in link
+  # filings <- links_to_13f %>%
+  # mutate(filing = purrr::map(link_to_filing, parse_13f))
+
+  # filings
+
+  # # conditionally clean column names
+  # if (clean_col_names) {
+  #   filing_df_clean_col_names <- janitor::clean_names(filing_df)
+  #   print(filing_df_clean_col_names)
+  # } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
+  #   print(filing_df)
+  # }
+}
+
 
 
 
@@ -584,3 +862,4 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
 #   print(list_of_filings_from_index)
 #
 # }
+
