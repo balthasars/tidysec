@@ -796,26 +796,18 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
       purrr::map_df(parse_13f_meta_xml) %>%
       select(-cik)
 
-    # primary_docs
-
+    # add content of primary_docs
     filings_plus_meta <- left_join(filings, primary_docs, by = c("filing_number"))
-#
-#     message(emo::ji_glue(":+1:"), "Those filings are ready now, hehe.")
-    return(filings_plus_meta)
+    message(emo::ji_glue(":+1:"), "Those filings are ready now, hehe.")
+
+    # conditionally clean column names and return
+    if (clean_col_names) {
+      filing_df_clean_col_names <- janitor::clean_names(filings_plus_meta)
+      return(filings_plus_meta)
+    } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
+      return(filings_plus_meta)
+    }
   }
-  # # parse contents in link
-  # filings <- links_to_13f %>%
-  # mutate(filing = purrr::map(link_to_filing, parse_13f))
-
-  # filings
-
-  # # conditionally clean column names
-  # if (clean_col_names) {
-  #   filing_df_clean_col_names <- janitor::clean_names(filing_df)
-  #   print(filing_df_clean_col_names)
-  # } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
-  #   print(filing_df)
-  # }
 }
 
 
