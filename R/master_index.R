@@ -500,8 +500,8 @@ parse_13f_submission_xml <- function(xml_link) {
       voting_authority_shared = get_xml_values("votingAuthority/Shared"),
       voting_authority_none = get_xml_values("votingAuthority/None")
     ) %>%
-      dplyr::mutate(dplyr::across(c(value, shrsorprnamt, tidyselect::starts_with("voting")), as.numeric)) %>%
-      dplyr::mutate(filing_number =  dirname(xml_link) %>% basename())
+      dplyr::mutate(dplyr::across(c(value, shrsorprnamt, tidyselect::starts_with("voting")), as.numeric))
+      # dplyr::mutate(filing_number =  dirname(xml_link) %>% basename())
     positions
   }
   positions_output <- parse_raw_xml()
