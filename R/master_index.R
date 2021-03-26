@@ -785,7 +785,7 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
     filings <- links_to_13f %>%
       dplyr::filter(endsWith(x = link_to_filing, suffix = "xml")) %>%
       dplyr::mutate(filing = purrr::map(link_to_filing, parse_13f_submission_xml)) %>%
-      dplyr::mutate(filing_number =  dirname(link_to_filing) %>% basename())
+      dplyr::mutate(filing_number = dirname(link_to_filing) %>% basename()) %>%
       dplyr::as_tibble()
 
     # get primary_doc
