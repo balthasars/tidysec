@@ -1,3 +1,5 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^README\.Rmd$
+^/Users/balthasarsager/git/tidysec/R/scrap$
+^LICENSE\.md$
