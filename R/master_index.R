@@ -763,7 +763,7 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
     filing_type_var <- "13F-HR"
   }
   # browser()
-  Sys.sleep(3)
+  Sys.sleep(5)
 
   # make list of filings and conditionally subset
   filings_df <- get_list_of_filings(cik = cik, year = year, filing_type = filing_type_var)
