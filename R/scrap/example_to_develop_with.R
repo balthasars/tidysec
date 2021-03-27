@@ -2,8 +2,15 @@ library(magrittr)
 library(tidysec)
 cik_blackrock <- "1364742"
 br_2020 <- get_13f(cik = cik_blackrock, year = 2020, clean_col_names = FALSE, amendments = FALSE)
-br_2020
-  # tidyr::unnest(filing)
+
+cik_random_bank <- c("1535602")
+rb_2020 <- get_13f(cik = cik_random_bank, year = 2020, clean_col_names = FALSE, amendments = FALSE)
+
+
+br_2020 %>%
+  # dplyr::filter(quarter %in%) %>%
+  tidyr::unnest(filing) %>%
+  dplyr::distinct(quarter, date_filed, periodOfReport, reportCalendarOrQuarter, signatureDate)
 
 library(magrittr)
 library(tidysec)
@@ -15,7 +22,7 @@ rb_2020 %>%
 try_with_get_request <- httr::RETRY(verb = "GET", url = "https://www.sec.gov/Archives/edgar/data/1364742/000108636420000038/form13fInfoTable.xml")
 
 "https://www.sec.gov/Archives/edgar/data/1364742/000108636420000038/form13fInfoTable.xml" %>%
-  tidysec:::parse_13f_submission_xml()
+  parse_13f_submission_xml()
 
 # temp <- tempfile()
 # "https://www.sec.gov/Archives/edgar/data/1364742/000142645920000005/form13fInfoTable.xml" %>%
