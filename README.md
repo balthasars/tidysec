@@ -1,19 +1,19 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# {tidysec}
+# `{tidysec}`
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of {tidysec} is to facilitate working with filings provided by
-the American Securities and Exchange Commission. Currently the package
-only supports 13F-filings. The package works with the quarterly master
-file.
+The goal of `{tidysec}` is to facilitate working with filings provided
+by the American Securities and Exchange Commission. Currently the
+package only supports 13F-filings. The package works with the quarterly
+master file.
 
 ## Installation
 
-You can install the development version of {tidysec} from
+You can install the development version of `{tidysec}` from
 [Github](https://github.com/balthasars/tidysec) with:
 
 ``` r
