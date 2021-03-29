@@ -677,7 +677,7 @@ get_13f_meta <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, 
 
     # make links to 13F XML
     links_to_13f <- get_13f_meta_link(filings_df)
-    message(crayon::bgYellow("Now parsing filings..."))
+    message(crayon::bgYellow("Now parsing meta"))
 
     # filings <- links_to_13f %>%
     #   dplyr::filter(endsWith(x = link_to_filing, suffix = "xml")) %>%
