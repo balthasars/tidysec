@@ -3,14 +3,19 @@ library(tidysec)
 cik_blackrock <- "1364742"
 br_2020 <- get_13f(cik = cik_blackrock, year = 2020, clean_col_names = FALSE, amendments = FALSE)
 
+br_2020 %>%
+  tidyr::unnest(filing) %>%
+  dplyr::distinct(quarter, date_filed, periodOfReport, reportCalendarOrQuarter, signatureDate)
+
+# br_2020 <- get_13f(cik = cik_blackrock, year = 2020, clean_col_names = FALSE, amendments = FALSE, link_only = TRUE)
+
+
 cik_random_bank <- c("1535602")
 rb_2020 <- get_13f(cik = cik_random_bank, year = 2020, clean_col_names = FALSE, amendments = FALSE)
 
+rb_2020 %>%
+  dplyr::select(link_to_filing)
 
-br_2020 %>%
-  # dplyr::filter(quarter %in%) %>%
-  tidyr::unnest(filing) %>%
-  dplyr::distinct(quarter, date_filed, periodOfReport, reportCalendarOrQuarter, signatureDate)
 
 library(magrittr)
 library(tidysec)
