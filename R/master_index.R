@@ -419,44 +419,39 @@ ua <- httr::user_agent("https://github.com/balthasars/tidysec")
 get_13f_ns <- function(xml) {
   xml2::xml_ns(xml) %>%
     tibble::enframe() %>%
-    dplyr::filter(stringr::str_detect(value, "sec.gov")) %>%
+    dplyr::filter(stringr::str_detect(value, "table")) %>%
     dplyr::sample_n(1) %>%
     dplyr::pull(name)
 }
 
+# helpers for `parse_13f_submission_xml`
+remove_chars <- function(x){gsub("[[:cntrl:]]", "", x)}
+
 # make tibble from XML document
 parse_13f_submission_xml <- function(xml_link) {
-
-  # http_get_filing_crul <- function(url_input) {
-  #   # create a HttpClient object, defining the url
-  #   cli <- crul::HttpClient$new(url = url_input)
-  #   # do a GET request
-  #   res <- cli$get()
-  #   # check to see if request failed or succeeded
-  #   # - if succeeds this will return nothing and proceeds to next step
-  #   res$raise_for_status()
-  #   # parse response to plain text (JSON in this case) - most likely you'll
-  #   # want UTF-8 encoding
-  #   txt <- res$parse("UTF-8")
-  #   # parse the JSON to an R list
-  #   xml2::read_xml(txt)
-  # }
-  # # mem_http_get_filing <- memoise::memoise(http_get_filing, cache = cache_fs)
-  #
-  # sec_meta_xml_raw <- http_get_filing_crul(xml_link)
+  cli <- crul::HttpClient$new(url = xml_link)
+  # do a GET request
+  res <- cli$get()
+  # check to see if request failed or succeeded
+  # - if succeeds this will return nothing and proceeds to next step
+  res$raise_for_status()
+  # parse response to plain text (JSON in this case) - most likely you'll
+  # want UTF-8 encoding
+  xml_chr <- res$parse("UTF-8") %>%
+    remove_chars()
 
   # Sys.sleep(4)
 
   # print("Now parsing", xml_link)
 
   # read xml
-  sec_meta_xml_raw <- xml_link
+  xml_raw <- xml2::read_xml(xml_chr)
 
-  # head(sec_meta_xml_raw)
+  # head(xml_raw)
   # get name space
-  ns <- get_13f_ns(sec_meta_xml_raw)
+  ns <- get_13f_ns(xml_raw)
   # get children of
-  info_tables <- sec_meta_xml_raw %>%
+  info_tables <- xml_raw %>%
     xml2::xml_find_all(
       xpath = paste0("//", ns, ":", "infoTable")
     )
@@ -472,14 +467,14 @@ parse_13f_submission_xml <- function(xml_link) {
       xml2::xml_find_all(xpath) %>%
       xml2::xml_text()
   }
-  #
+
   # # be careful here about xpath syntax! good explanation here: https://www.w3schools.com/xml/xpath_syntax.asp
   # # Also, there's a risk of accidentally parsing the children of a specific column,
   # # resulting in the wrong reported values f.e. of the reported shares,
   # # if you do not look at the raw XML file! — f.e. in Firefox:
   # # view-source:https://www.sec.gov/Archives/edgar/data/1582202/000158220220000001/InfoTable_Q42019.xml
 
-  parse_raw_xml <- function(){
+  parse_raw_xml <- function() {
     positions <- tibble::tibble(
       issuer = get_xml_values("nameOfIssuer"),
       class = get_xml_values("titleOfClass"),
@@ -493,27 +488,12 @@ parse_13f_submission_xml <- function(xml_link) {
       voting_authority_none = get_xml_values("votingAuthority/None")
     ) %>%
       dplyr::mutate(dplyr::across(c(value, shrsorprnamt, tidyselect::starts_with("voting")), as.numeric))
-      # dplyr::mutate(filing_number =  dirname(xml_link) %>% basename())
     positions
   }
   positions_output <- parse_raw_xml()
 
-  # print(nrow(positions_output))
   positions_output
-  # unlink(temporary_file_path)
-
-  # if(nrow(positions_output) > 0){
-  #   return(positions_output)
-  # } else if (nrow(positions_output) == 0){
-  #   retry::retry(expr = parse_raw_xml(), until = function(val, cnd) nrow(val) > 0)
-  # }
-  # print("positions")
-  # positions
-
 }
-
-# "https://www.sec.gov/Archives/edgar/data/1364742/000108636420000038/form13fInfoTable.xml" %>%
-#   parse_13f_submission_xml()
 
 
 parse_13f_meta_xml <- function(link_to_primary_doc){
@@ -779,61 +759,61 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
     message(crayon::bgYellow("Now parsing filings..."))
 
     filings <- links_to_13f %>%
-      dplyr::filter(endsWith(x = link_to_filing, suffix = "xml"))
-    #   dplyr::mutate(filing = purrr::map(link_to_filing, parse_13f_submission_xml)) %>%
-    #   dplyr::mutate(filing_number = dirname(link_to_filing) %>% basename()) %>%
-    #   dplyr::as_tibble()
-    #
-    # # get primary_doc
-    # # TODO: set `filing_type` to `filing_type_var`
-    # list_of_filings <- get_list_of_filings(cik = cik, year = year, filing_type = filing_type_var)
-    # primary_docs <- construct_link_to_filing_directory(dt = list_of_filings, xml_index = TRUE) %>%
-    #   purrr::map_chr(check_for_and_get_xml_primary_doc_file) %>%
-    #   purrr::map_df(parse_13f_meta_xml) %>%
-    #   select(-cik)
-    #
+      dplyr::filter(endsWith(x = link_to_filing, suffix = "xml")) %>%
+      dplyr::mutate(filing = purrr::map(link_to_filing, parse_13f_submission_xml)) %>%
+      dplyr::mutate(filing_number = dirname(link_to_filing) %>% basename()) %>%
+      dplyr::as_tibble()
+
+# get primary_doc
+# TODO: set `filing_type` to `filing_type_var`
+list_of_filings <- get_list_of_filings(cik = cik, year = year, filing_type = filing_type_var)
+primary_docs <- construct_link_to_filing_directory(dt = list_of_filings, xml_index = TRUE) %>%
+  purrr::map_chr(check_for_and_get_xml_primary_doc_file) %>%
+  purrr::map_df(parse_13f_meta_xml) %>%
+  select(-cik)
+
     # # add content of primary_docs
-    # filings_plus_meta <- left_join(filings, primary_docs, by = c("filing_number"))
-    # message(emo::ji_glue(":+1:"), "Those filings are ready now, hehe.")
+    filings_plus_meta <- left_join(filings, primary_docs, by = c("filing_number"))
+    message(emo::ji_glue(":+1:"), "Those filings are ready now, hehe.")
 
     # conditionally clean column names and return
-    # if (clean_col_names) {
-    #   filing_df_clean_col_names <- janitor::clean_names(filings_plus_meta)
-    #   return(filings_plus_meta)
-    # } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
-    #   return(filings_plus_meta)
-    # }
+    if (clean_col_names) {
+      filing_df_clean_col_names <- janitor::clean_names(filings_plus_meta)
+      return(filings_plus_meta)
+    } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
+      return(filings_plus_meta)
+    }
   }
 }
 
-library(magrittr)
-cik_blackrock <- "1364742"
-br_2020 <- get_13f(cik = cik_blackrock, year = 2020, clean_col_names = FALSE, amendments = FALSE)
-links_br <- br_2020 %>%
-  dplyr::select(link_to_filing) %>%
-  dplyr::pull(link_to_filing)
-
-cc <- crul::Async$new(
-  urls = links_br
-)
-
-res <- cc$get()
-
-# test for success, TODO: wait until all are TRUE
-get_success <- function(x){x$success()}
-purrr::map_lgl(res, get_success)
-
-remove_chars <- function(x){gsub("[[:cntrl:]]", "", x)}
-
-xml_raw_results <- lapply(res, function(z) z$parse("UTF-8")) %>%
-  lapply(remove_chars)
-
-go_one_deeper_and_read_xml <- function(weird_list){
-  xml2::read_xml((weird_list[[1]]))
-  }
-
-lapply(xml_raw_results, go_one_deeper_and_read_xml)
-  lapply(parse_13f_submission_xml)
+# library(magrittr)
+# cik_blackrock <- "1364742"
+# br_2020 <- get_13f(cik = cik_blackrock, year = 2020, clean_col_names = FALSE, amendments = FALSE)
+# links_br <- br_2020 %>%
+#   dplyr::select(link_to_filing) %>%
+#   dplyr::pull(link_to_filing)
+#
+# cc <- crul::Async$new(
+#   urls = links_br
+# )
+#
+# res <- cc$get()
+#
+# # test for success, TODO: wait until all are TRUE
+# get_success <- function(x){x$success()}
+# purrr::map_lgl(res, get_success)
+#
+# remove_chars <- function(x){gsub("[[:cntrl:]]", "", x)}
+#
+# xml_raw_results <- lapply(res, function(z) z$parse("UTF-8")) %>%
+#   lapply(remove_chars)
+#
+# go_one_deeper_and_read_xml <- function(weird_list){
+#   xml2::read_xml((weird_list[[1]]))
+#   }
+#
+# lapply(xml_raw_results, go_one_deeper_and_read_xml) %>%
+#   lapply(parse_13f_submission_xml)
 
 # links_1 <- get_13f(cik = cik_ubs, year = 2014, amendments = TRUE, clean_col_names = TRUE, link_only = TRUE) %>%
 #   slice(1) %>%
