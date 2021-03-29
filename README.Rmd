@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of {tidysec} is to facilitate working with filings provided by the American Securities and Exchange Commission. Currently the package only supports 13F-filings.
+The goal of {tidysec} is to facilitate working with filings provided by the American Securities and Exchange Commission. Currently the package only supports 13F-filings. The package works with the quarterly master file.
 
 ## Installation
 
@@ -72,3 +72,20 @@ cs_2019 <- get_list_of_filings(
   )
 cs_2019
 ```
+
+# Other Resources to Work with SEC Data
+
+## R packages
+The following packages may also be helpful to you if you're looking to work with anything else than 13F filings (I haven't tested them though):
+
+- [`{finreportr}`](https://github.com/sewardlee337/finreportr) and/or [`{finstr}`](https://github.com/bergant/finstr)
+  - for accessing financial statements of companies
+- [`{edgarWebR}`](https://github.com/mwaldstein/edgarWebR)
+  - with an emphasis on finding various kinds of filings
+- [`{edgar}`](https://cran.r-project.org/web/packages/edgar/) for a variety of functions
+  
+## APIs
+
+If you just want easy acess to filings, check out finance APIs that offer 13F filings:
+
+- [FMP Cloud](https://fmpcloud.io)
