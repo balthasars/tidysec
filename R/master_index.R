@@ -431,33 +431,14 @@ get_13f_ns <- function(xml) {
     dplyr::pull(name)
 }
 
-# helpers for `parse_13f_submission_xml`
-remove_chars <- function(x){gsub("[[:cntrl:]]", "", x)}
-
-# make tibble from XML document
 parse_13f_submission_xml <- function(xml_link) {
-  cli <- crul::HttpClient$new(url = xml_link)
-  # do a GET request
-  res <- cli$get()
-  # check to see if request failed or succeeded
-  # - if succeeds this will return nothing and proceeds to next step
-  res$raise_for_status()
-  # parse response to plain text (JSON in this case) - most likely you'll
-  # want UTF-8 encoding
-  xml_chr <- res$parse("UTF-8") %>%
-    remove_chars()
+  # read xml and check for status
+  xml_raw <- get_check_parse_xml(xml_link)
 
-  # Sys.sleep(4)
-
-  # print("Now parsing", xml_link)
-
-  # read xml
-  xml_raw <- xml2::read_xml(xml_chr)
-
-  # head(xml_raw)
   # get name space
   ns <- get_13f_ns(xml_raw)
-  # get children of
+
+    # get children of
   info_tables <- xml_raw %>%
     xml2::xml_find_all(
       xpath = paste0("//", ns, ":", "infoTable")
