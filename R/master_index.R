@@ -113,7 +113,6 @@ get_master_indices_for_single_year <- function(year = NULL) {
 
 # helper for `subset_master_indices()`
 # takes input from `subset_master_indices()`
-# TODO: that code is a bit gross tbh...
 construct_link_to_filing_directory <- function(dt, xml_index = TRUE) {
   file_names_without_ext <- basename(tools::file_path_sans_ext(dt$filename))
   # remove dashes to construct last part of filing directory
@@ -265,19 +264,16 @@ get_13f_link <- function(list_of_all_filings, forms) {
     dplyr::mutate(link_to_filing_dir = construct_link_to_filing_directory(
       dt = list_of_all_filings, xml_index = TRUE))
 
-  # print(links_to_filing_dirs)
-
   # Get links to `InfoTable` files if any XML documents are found in
   # a filing directory using `check_for_and_get_xml_infotable_file()`.
   # Otherwise, a txt file is returned.
-  list_of_filings_plus_xml_link <- links_to_filing_dirs %>%
+
+    list_of_filings_plus_xml_link <- links_to_filing_dirs %>%
     dplyr::mutate(link_to_filing = purrr::map2_chr(
       link_to_filing_dir, filename,
       check_for_and_get_xml_infotable_file
     ))
 
-  # print(list_of_filings_plus_xml_link)
-  #
   # Construct full path to XML files with filings
   full_path_links <- list_of_filings_plus_xml_link %>%
     dplyr::mutate(link_to_filing = construct_path_to_13f_filing(link_to_filing, link_to_filing_dir)) %>%
@@ -312,46 +308,6 @@ get_13f_meta_link <- function(list_of_all_filings, forms) {
   full_path_links
 }
 
-
-# parse_13f <- function(link_to_filing, clean_col_names = TRUE){
-#
-#   # read xml
-#   xml <- xml2::read_xml(link_to_filing)
-#
-#   # # be careful here about xpath syntax! good explanation here: https://www.w3schools.com/xml/xpath_syntax.asp
-#   # # Also, there's a risk of accidentally parsing the children of a specific column,
-#   # # resulting in the wrong reported values f.e. of the reported shares,
-#   # # if you do not look at the raw XML file! — f.e. in Firefox:
-#   # # view-source:https://www.sec.gov/Archives/edgar/data/1582202/000158220220000001/InfoTable_Q42019.xml
-#   #
-#
-#   xpaths <- list(
-#     issuer = "//ns1:nameOfIssuer",
-#     class = "//ns1:titleOfClass",
-#     cusip = "//ns1:cusip",
-#     value = "//ns1:value",
-#     shrsorprnamt = "//ns1:shrsOrPrnAmt/ns1:sshPrnamt",
-#     sshprnamttype = "//ns1:shrsOrPrnAmt/ns1:sshPrnamtType",
-#     investment_discretion = "//ns1:investmentDiscretion",
-#     voting_authority_sole = "//ns1:votingAuthority/ns1:Sole",
-#     voting_authority_shared = "//ns1:votingAuthority/ns1:Shared",
-#     voting_authority_none = "//ns1:votingAuthority/ns1:None"
-#     # issuer = "//infoTable/nameOfIssuer",
-#     # class = "//infoTable/titleOfClass",
-#     # cusip = "//infoTable/cusip",
-#     # value = "//infoTable/value",
-#     # shrsorprnamt = "//infoTable/shrsOrPrnAmt/sshPrnamt",
-#     # sshprnamttype = "//infoTable/shrsOrPrnAmt/sshPrnamtType",
-#     # investment_discretion = "//infoTable/investmentDiscretion",
-#     # voting_authority_sole = "//infoTable/votingAuthority/Sole",
-#     # voting_authority_shared = "//infoTable/votingAuthority/Shared",
-#     # voting_authority_none = "//infoTable/votingAuthority/None"
-#   )
-#
-#   # iterate over list of xpaths and make data frame
-#   filing_df <- purrr::map_df(xpaths, xml_find_all_then_text, nodes = xml)
-#   filing_df
-# }
 
 meta_proto_tbl <- tibble::tibble(
   cik = NA_character_,
@@ -523,7 +479,6 @@ parse_13f_meta_xml <- function(link_to_primary_doc){
   meta_doc_xml <- get_check_parse_xml(url = link_to_primary_doc)
   xml2::xml_ns_strip(meta_doc_xml)
 
-
   # meta-information of interest for a given filing
   xpaths <- list(
     submissionType = "//headerData/submissionType",
@@ -602,45 +557,6 @@ parse_13f_meta_other_managers_xml <- function(link_to_primary_doc){
 
 # "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
 #   parse_13f_meta_other_managers_xml()
-#
-# "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
-#   xml2::read_xml() %>%
-#   xml2::xml_ns_strip() %>%
-#   xml2::xml_find_all("//coverPage/otherManagersInfo")
-#
-# "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
-#   xml2::read_xml() %>%
-#   xml_find_all_then_text()
-#
-# "https://www.sec.gov/Archives/edgar/data/1364742/000108636415002125/primary_doc.xml" %>%
-#   xml2::read_xml() %>%
-#   xml2::xml_find_all("//.") %>%
-#   xml2::xml_find_all(".")
-#
-# "https://www.sec.gov/Archives/edgar/data/1364742/000108636415002125/primary_doc.xml" %>%
-#   xml2::read_xml() %>%
-#   xml2::xml_find_all("*")
-#
-# "https://www.sec.gov/Archives/edgar/data/1364742/000108636415002125/primary_doc.xml" %>%
-#   xml2::read_xml() %>%
-#   xml2::xml_find_all("//*/liveTestFlag")
-#
-# "https://www.sec.gov/Archives/edgar/data/1364742/000108636415002125/primary_doc.xml" %>%
-#   xml2::read_xml() %>%
-#   xml2::xml_find_all("./liveTestFlag")
-#
-# "https://www.sec.gov/Archives/edgar/data/1364742/000108636415002125/primary_doc.xml" %>%
-#   # parse_13f_meta_xml() %>%
-#   xml2::read_xml() %>%
-#   xml2::xml_ns_strip()
-
-  # get_13f_ns <- function(xml) {
-  #   xml2::xml_ns(xml) %>%
-  #     tibble::enframe() %>%
-  #     dplyr::filter(stringr::str_detect(value, "sec.gov")) %>%
-  #     dplyr::sample_n(1) %>%
-  #     dplyr::pull(name)
-  # }
 
 #' Retrieve Meta Information for a 13F filing.
 #'
@@ -777,7 +693,6 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
       dplyr::as_tibble()
 
     # get primary_doc
-    # TODO: set `filing_type` to `filing_type_var`
     list_of_filings <- get_list_of_filings(cik = cik, year = year, filing_type = filing_type_var)
     primary_docs <- construct_link_to_filing_directory(dt = list_of_filings, xml_index = TRUE) %>%
       purrr::map_chr(check_for_and_get_xml_primary_doc_file) %>%
@@ -797,74 +712,3 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
     }
   }
 }
-
-# library(magrittr)
-# cik_blackrock <- "1364742"
-# br_2020 <- get_13f(cik = cik_blackrock, year = 2020, clean_col_names = FALSE, amendments = FALSE)
-# links_br <- br_2020 %>%
-#   dplyr::select(link_to_filing) %>%
-#   dplyr::pull(link_to_filing)
-#
-# cc <- crul::Async$new(
-#   urls = links_br
-# )
-#
-# res <- cc$get()
-#
-# # test for success, TODO: wait until all are TRUE
-# get_success <- function(x){x$success()}
-# purrr::map_lgl(res, get_success)
-#
-# remove_chars <- function(x){gsub("[[:cntrl:]]", "", x)}
-#
-# xml_raw_results <- lapply(res, function(z) z$parse("UTF-8")) %>%
-#   lapply(remove_chars)
-#
-# go_one_deeper_and_read_xml <- function(weird_list){
-#   xml2::read_xml((weird_list[[1]]))
-#   }
-#
-# lapply(xml_raw_results, go_one_deeper_and_read_xml) %>%
-#   lapply(parse_13f_submission_xml)
-
-# links_1 <- get_13f(cik = cik_ubs, year = 2014, amendments = TRUE, clean_col_names = TRUE, link_only = TRUE) %>%
-#   slice(1) %>%
-#   pull(link_to_filing)
-#
-# links_2 <- get_13f(cik = cik_snb, year = 2014, amendments = TRUE, clean_col_names = TRUE, link_only = TRUE) %>%
-#   slice(1) %>%
-#   pull(link_to_filing)
-#
-# links_3 <- get_13f(cik = cik_blackrock, year = 2015, amendments = TRUE, clean_col_names = TRUE, link_only = TRUE) %>%
-#   slice(3) %>%
-#   pull(link_to_filing)
-
-# parse_13f_submission_xml(links_3)
-# parse_13f_submission_xml(links_2)
-# parse_13f_submission_xml(links_1)
-#
-# snb_xml <- xml2::read_xml("https://www.sec.gov/Archives/edgar/data/1582202/000158220214000002/InfoTable_Q42013.xml")
-# ubs_xml <- xml2::read_xml("https://www.sec.gov/Archives/edgar/data/1114446/000095012314006475/form13fInfoTable.xml")
-#
-# xml2::xml_ns(ubs_xml)
-# xml2::xml_ns(snb_xml)
-#
-#
-#
-# "https://www.sec.gov/Archives/edgar/data/1364742/000108636415002125/form13fInfoTable.xml" %>%
-#   parse_13f()
-
-# get_link_to_13f_filing_for_single_year <- function(cik, year){
-#
-#   index <- get_master_indices_for_single_year(year = as.character(year))
-#
-#   list_of_filings_from_index <- subset_master_indices(
-#     cik_company = cik,
-#     master_index_dt = index,
-#     form_type_in = "13F-HR"
-#   )
-#
-#   print(list_of_filings_from_index)
-#
-# }
-
