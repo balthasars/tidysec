@@ -483,17 +483,12 @@ parse_13f_submission_xml <- function(xml_link) {
   positions_output
 }
 
-
 parse_13f_meta_xml <- function(link_to_primary_doc){
 
   # read document with information about filing
-
-  # TODO: add checks for HTTP error codes
-  # response <- httr::GET(link)
-  # parsed <- httr::content(response, as = "text", encoding = "UTF-8")
-
-  meta_doc_xml <- xml2::read_xml(link_to_primary_doc)
+  meta_doc_xml <- get_check_parse_xml(url = link_to_primary_doc)
   xml2::xml_ns_strip(meta_doc_xml)
+
 
   # meta-information of interest for a given filing
   xpaths <- list(
@@ -531,23 +526,18 @@ parse_13f_meta_other_managers_included_xml <- function(link_to_primary_doc){
   # response <- httr::GET(link)
   # parsed <- httr::content(response, as = "text", encoding = "UTF-8")
 
-  meta_doc_xml <- xml2::read_xml(link_to_primary_doc) %>%
+  meta_doc_xml <- get_check_parse_xml(url = link_to_primary_doc) %>%
     xml2::xml_ns_strip()
 
   # meta-information of interest for a given filing
   xpaths <- list(
-    # cik = "//filer/credentials/cik",
-    # periodOfReport = "//periodOfReport",
-    # reportCalendarOrQuarter = "//formData/coverPage/reportCalendarOrQuarter",
-    # otherIncludedManagersCount = "//summaryPage/otherIncludedManagersCount",
-    # otherManagers2InfootherManager = "//coverPage/otherManagersInfo/otherManager"
     otherManagersInfootherManagerform13FFileNumber = "//coverPage/otherManagersInfo/otherManager/form13FFileNumber",
     otherManagersInfootherManagerform13Fname = "//coverPage/otherManagersInfo/otherManager/name"
   )
 
   # iterate over xpaths and create a wide tibble
-  purrr::map_df(xpaths, xml_find_all_then_text, nodes = meta_doc_xml) %>%
-    dplyr::mutate(link_to_primary_doc = link_to_primary_doc)
+  purrr::map_df(xpaths, xml_find_all_then_text, nodes = meta_doc_xml)
+    # dplyr::mutate(link_to_primary_doc = link_to_primary_doc)
 }
 
 # "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
