@@ -353,7 +353,41 @@ get_13f_meta_link <- function(list_of_all_filings, forms) {
 #   filing_df
 # }
 
+meta_proto_tbl <- tibble::tibble(
+  cik = NA_character_,
+  company_name = NA_character_,
+  form_type = NA_character_,
+  date_filed = NA_character_,
+  quarter = NA_integer_,
+  link_to_filing = NA_character_,
+  filing_number = NA_character_,
+  submissionType = NA_character_,
+  filingManager = NA_character_,
+  reportType = NA_character_,
+  periodOfReport = NA_character_,
+  reportCalendarOrQuarter = NA_character_,
+  form13FFileNumber = NA_character_,
+  stateOrCountry = NA_character_,
+  signatureDate = NA_character_,
+  tableEntryTotal = NA_integer_,
+  tableValueTotal = NA_integer_,
+  otherIncludedManagersCount = NA_character_,
+  otherManagers2Info = NA_character_,
+  link_to_primary_doc = NA_character_
+)
 
+filing_proto <- tibble::tibble(
+  issuer = NA_character_,
+  class = NA_character_,
+  cusip = NA_character_,
+  value = NA_integer_,
+  shrsorprnamt = NA_integer_,
+  sshprnamttype = NA_character_,
+  investment_discretion = NA_character_,
+  voting_authority_sole = NA_integer_,
+  voting_authority_shared = NA_integer_,
+  voting_authority_none = NA_integer_
+)
 
 #' Retrieve a list of a company's SEC filings.
 #'
