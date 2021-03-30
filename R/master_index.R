@@ -108,7 +108,6 @@ get_master_indices_for_single_year <- function(year = NULL) {
   master_index_lst <- purrr::map(master_index_links, mem_download_single_master_index_file)
   # bind data frames together
   master_index_dt <- data.table::rbindlist(master_index_lst)
-
 }
 
 # helper for `subset_master_indices()`
@@ -132,7 +131,6 @@ construct_link_to_filing_directory <- function(dt, xml_index = TRUE) {
 
 # takes input from `get_master_indices_for_single_year()`
 subset_master_indices <- function(master_index_dt, form_type_in = NULL, cik_company) {
-
   assertive::assert_is_not_null(cik_company, severity = "stop")
   assertive::assert_is_not_null(master_index_dt, severity = "stop")
 
@@ -143,16 +141,15 @@ subset_master_indices <- function(master_index_dt, form_type_in = NULL, cik_comp
     links <- master_index_dt %>%
       # dtplyr::lazy_dt() %>%
       dplyr::filter(cik %in% cik_company)
-      # dplyr::as_tibble()
-
+    # dplyr::as_tibble()
   } else {
     # must be `&` not `,` to concatenate conditions!
     links <- master_index_dt %>%
       # dtplyr::lazy_dt() %>%
       dplyr::filter(form_type %in% form_type_in & cik %in% cik_company)
-      # dplyr::as_tibble()
-      # master_index_dt[form_type %in% form_type_in & cik %in% cik_company] %>%
-      # as_tibble()
+    # dplyr::as_tibble()
+    # master_index_dt[form_type %in% form_type_in & cik %in% cik_company] %>%
+    # as_tibble()
   }
 
   # browser()
@@ -169,7 +166,7 @@ subset_master_indices <- function(master_index_dt, form_type_in = NULL, cik_comp
 
 # get_master_indices_for_single_year(2014) %>%
 #   subset_master_indices(form_type_in = NULL, cik_company = "1364742")
-  # .[form_type %in% "13F-HR"]
+# .[form_type %in% "13F-HR"]
 
 # test_df <- get_master_indices_for_single_year(2020) %>%
 #   subset_master_indices(form_type_in = c("13F-HR", "13F-HR/A"), cik_company = "1649647")
@@ -206,8 +203,7 @@ check_for_and_get_xml_infotable_file <- function(link_to_filing_dir, link_to_fil
 # helper for `get_13f_meta_link()`
 # search for xml primary_doc file.
 check_for_and_get_xml_primary_doc_file <- function(link_to_filing_dir, link_to_filing_txt) {
-
-    file_names <- get_check_parse_xml(link_to_filing_dir) %>%
+  file_names <- get_check_parse_xml(link_to_filing_dir) %>%
     xml2::xml_find_all("item/name") %>%
     xml2::xml_text()
 
@@ -236,8 +232,8 @@ check_for_and_get_xml_primary_doc_file <- function(link_to_filing_dir, link_to_f
 ## "https://www.sec.gov/Archives/edgar/data/1114446/000095012314011529/index.xml" %>%
 # "https://www.sec.gov/Archives/edgar/data/1544599/000154459920000007/index.xml" %>%
 #   check_for_and_get_xml_primary_doc_file()
-  # .[endsWith(x = ., "xml")] %>%
-  # .[stringr::str_detect(string = ., pattern = "primary_doc", negate = TRUE)]
+# .[endsWith(x = ., "xml")] %>%
+# .[stringr::str_detect(string = ., pattern = "primary_doc", negate = TRUE)]
 
 
 
@@ -262,13 +258,14 @@ get_13f_link <- function(list_of_all_filings, forms) {
   # construct links to directories containing filings
   links_to_filing_dirs <- list_of_all_filings %>%
     dplyr::mutate(link_to_filing_dir = construct_link_to_filing_directory(
-      dt = list_of_all_filings, xml_index = TRUE))
+      dt = list_of_all_filings, xml_index = TRUE
+    ))
 
   # Get links to `InfoTable` files if any XML documents are found in
   # a filing directory using `check_for_and_get_xml_infotable_file()`.
   # Otherwise, a txt file is returned.
 
-    list_of_filings_plus_xml_link <- links_to_filing_dirs %>%
+  list_of_filings_plus_xml_link <- links_to_filing_dirs %>%
     dplyr::mutate(link_to_filing = purrr::map2_chr(
       link_to_filing_dir, filename,
       check_for_and_get_xml_infotable_file
@@ -287,7 +284,8 @@ get_13f_meta_link <- function(list_of_all_filings, forms) {
   # construct links to directories containing filings
   links_to_filing_dirs <- list_of_all_filings %>%
     dplyr::mutate(link_to_filing_dir = construct_link_to_filing_directory(
-      dt = list_of_all_filings, xml_index = TRUE))
+      dt = list_of_all_filings, xml_index = TRUE
+    ))
 
   # Get links to `InfoTable` files if any XML documents are found in
   # a filing directory using `check_for_and_get_xml_infotable_file()`.
@@ -433,7 +431,7 @@ parse_13f_submission_xml <- function(xml_link) {
   # get name space
   ns <- get_13f_ns(xml_raw)
 
-    # get children of
+  # get children of
   info_tables <- xml_raw %>%
     xml2::xml_find_all(
       xpath = paste0("//", ns, ":", "infoTable")
@@ -478,7 +476,7 @@ parse_13f_submission_xml <- function(xml_link) {
   positions_output
 }
 
-parse_13f_meta_xml <- function(link_to_primary_doc){
+parse_13f_meta_xml <- function(link_to_primary_doc) {
 
   # read document with information about filing
   meta_doc_xml <- get_check_parse_xml(url = link_to_primary_doc)
@@ -509,10 +507,10 @@ parse_13f_meta_xml <- function(link_to_primary_doc){
     # add link to primary doc
     dplyr::mutate(link_to_primary_doc = link_to_primary_doc) %>%
     # add filing number to join with actual filing
-    dplyr::mutate(filing_number =  dirname(link_to_primary_doc) %>% basename())
+    dplyr::mutate(filing_number = dirname(link_to_primary_doc) %>% basename())
 }
 
-parse_13f_meta_other_managers_included_xml <- function(link_to_primary_doc){
+parse_13f_meta_other_managers_included_xml <- function(link_to_primary_doc) {
 
   # read document with information about filing
 
@@ -531,13 +529,13 @@ parse_13f_meta_other_managers_included_xml <- function(link_to_primary_doc){
 
   # iterate over xpaths and create a wide tibble
   purrr::map_df(xpaths, xml_find_all_then_text, nodes = meta_doc_xml)
-    # dplyr::mutate(link_to_primary_doc = link_to_primary_doc)
+  # dplyr::mutate(link_to_primary_doc = link_to_primary_doc)
 }
 
 # "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
 #   parse_13f_meta_other_managers_included_xml()
 
-parse_13f_meta_other_managers_xml <- function(link_to_primary_doc){
+parse_13f_meta_other_managers_xml <- function(link_to_primary_doc) {
 
   # read document with information about filing
 
@@ -552,7 +550,6 @@ parse_13f_meta_other_managers_xml <- function(link_to_primary_doc){
   xpaths <- list(
     otherManagerName = "//summaryPage/otherManagers2Info/otherManager2/otherManager/name",
     otherManagerForm13FFileNumber = "//summaryPage/otherManagers2Info/otherManager2/otherManager/form13FFileNumber"
-
   )
 
   # iterate over xpaths and create a wide tibble
