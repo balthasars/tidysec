@@ -370,7 +370,7 @@ filing_proto <- tibble::tibble(
 get_list_of_filings <- function(cik, year, filing_type = "all", clean_col_names = TRUE) {
 
   # conditionally replace `filing_type` argument for helper functions
-  if(any(filing_type %in% "all")){
+  if (any(filing_type %in% "all")) {
     filing_type_arg <- NULL
   } else {
     filing_type_arg <- filing_type
@@ -382,23 +382,37 @@ get_list_of_filings <- function(cik, year, filing_type = "all", clean_col_names 
     master_index_dt = master_indices,
     cik_company = cik,
     form_type_in = filing_type_arg
-    ) %>%
+  ) %>%
     dplyr::as_tibble()
 
-  print(
-    paste(
-    "No (0) filings were found for CIKs",
-    paste(setdiff(ciks, subset_list$cik), collapse = ",")
-    # "in the index master files for", paste(year, collapse = ","))
-    ))
+  # conditionally print message if filings not find for any CIKs
+  overlap_cik_input_data <- setdiff(cik, subset_list$cik)
+
+  if (!rlang::is_empty(overlap_cik_input_data)) {
+    print(
+      paste(
+        "No filings found for CIK",
+        paste(setdiff(cik, subset_list$cik), collapse = ",")
+      )
+    )
+  }
+
+  # ∆ TODO: return prototype of data instead!
+  # - indicator to 13F that empty prototype should be returned instead?
+  # -
+  # abort if no data found
+  if (nrow(subset_list) == 0) {
+    rlang::abort(message = "No data found.")
+  }
 
   # conditionally clean column names
   if (clean_col_names) {
     subset_list <- janitor::clean_names(subset_list)
+    return(subset_list)
   } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
     subset_list
   }
-  subset_list
+  return(subset_list)
 }
 
 # cik_ubs <- "1114446"
