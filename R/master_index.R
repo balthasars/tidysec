@@ -567,7 +567,7 @@ parse_13f_meta_other_managers_xml <- function(link_to_primary_doc){
 }
 
 # "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
-# parse_13f_meta_other_managers_xml()
+#   parse_13f_meta_other_managers_xml()
 #
 # "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
 #   xml2::read_xml() %>%
@@ -742,13 +742,13 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
       dplyr::mutate(filing_number = dirname(link_to_filing) %>% basename()) %>%
       dplyr::as_tibble()
 
-# get primary_doc
-# TODO: set `filing_type` to `filing_type_var`
-list_of_filings <- get_list_of_filings(cik = cik, year = year, filing_type = filing_type_var)
-primary_docs <- construct_link_to_filing_directory(dt = list_of_filings, xml_index = TRUE) %>%
-  purrr::map_chr(check_for_and_get_xml_primary_doc_file) %>%
-  purrr::map_df(parse_13f_meta_xml) %>%
-  select(-cik)
+    # get primary_doc
+    # TODO: set `filing_type` to `filing_type_var`
+    list_of_filings <- get_list_of_filings(cik = cik, year = year, filing_type = filing_type_var)
+    primary_docs <- construct_link_to_filing_directory(dt = list_of_filings, xml_index = TRUE) %>%
+      purrr::map_chr(check_for_and_get_xml_primary_doc_file) %>%
+      purrr::map_df(parse_13f_meta_xml) %>%
+      select(-cik)
 
     # # add content of primary_docs
     filings_plus_meta <- left_join(filings, primary_docs, by = c("filing_number"))
