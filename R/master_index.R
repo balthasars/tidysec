@@ -395,6 +395,13 @@ get_list_of_filings <- function(cik, year, filing_type = "all", clean_col_names 
     ) %>%
     dplyr::as_tibble()
 
+  print(
+    paste(
+    "No (0) filings were found for CIKs",
+    paste(setdiff(ciks, subset_list$cik), collapse = ",")
+    # "in the index master files for", paste(year, collapse = ","))
+    ))
+
   # conditionally clean column names
   if (clean_col_names) {
     subset_list <- janitor::clean_names(subset_list)
