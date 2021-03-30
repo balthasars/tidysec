@@ -29,7 +29,7 @@ tibble with a nested data frame column.
 library(tidysec)
 library(magrittr)
 cik_blackrock <- "1364742"
-br_2015 <- get_13f(cik = cik_blackrock, year = 2015, clean_col_names = FALSE, amendments = FALSE)
+br_2015 <- get_13f(cik = cik_blackrock, year = 2015, amendments = FALSE)
 #> Searching SEC filings from 2015.
 #> tidysec caches the SEC's master index files for the time period you've downloaded up to now at/Users/balthasarsager/.rcache/tidysec/ .
 #> Run `forget_tidysec_cache()` to delete the master indices if you no longer need them.
@@ -113,8 +113,7 @@ cik_credit_suisse <- "824468"
 cs_2019 <- get_list_of_filings(
   cik = cik_credit_suisse, 
   year = 2020, 
-  filing_type = "all",
-  clean_col_names = TRUE 
+  filing_type = "all"
   )
 #> Searching SEC filings from 2020.
 #> tidysec caches the SEC's master index files for the time period you've downloaded up to now at/Users/balthasarsager/.rcache/tidysec/ .

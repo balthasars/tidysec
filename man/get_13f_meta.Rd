@@ -4,13 +4,7 @@
 \alias{get_13f_meta}
 \title{Retrieve Meta Information for a 13F filing.}
 \usage{
-get_13f_meta(
-  cik,
-  year,
-  amendments = FALSE,
-  clean_col_names = TRUE,
-  link_only = FALSE
-)
+get_13f_meta(cik, year, amendments = FALSE, link_only = FALSE)
 }
 \arguments{
 \item{cik}{Central index key of a company.}
@@ -18,8 +12,6 @@ get_13f_meta(
 \item{year}{Which year or time period of filings.}
 
 \item{amendments}{Include 13F-HR/A when retrieving — only works when \code{link_only = TRUE}. Defaults to FALSE.}
-
-\item{clean_col_names}{Remove camel case from column names.}
 
 \item{link_only}{Do not retrieve full filing but only link to it.}
 }
@@ -29,8 +21,8 @@ get_13f_meta(
 \examples{
 # Get and parse BlackRock's 2015 13F filings.
 cik_blackrock <- "1364742"
-get_13f_meta(cik = cik_blackrock, year = 2015, clean_col_names = TRUE, link_only = FALSE)
+get_13f_meta(cik = cik_blackrock, year = 2015, link_only = FALSE)
 # Get the links to the Swiss National Bank's 2016 to 2019 filings.
 cik_snb <- "1582202"
-get_13f_meta(cik = cik_snb, year = 2016:2019, amendments = TRUE, clean_col_names = TRUE, link_only = TRUE)
+get_13f_meta(cik = cik_snb, year = 2016:2019, amendments = TRUE, link_only = TRUE)
 }

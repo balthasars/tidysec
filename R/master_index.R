@@ -355,19 +355,17 @@ filing_proto <- tibble::tibble(
 #' @param cik Central index key of a company.
 #' @param filing_type Type of filing, defaults to all.
 #' @param year Which year or time period of filings.
-#' @param clean_col_names Remove camel case from column names. Defaults to TRUE.
-# #' @examples
+#' @examples
 #' # Retrieve all filings made by the Swiss National Bank in 2013.
 #' swiss_national_bank_cik <- "1582202"
 #' get_list_of_filings(cik = swiss_national_bank_cik, 2013)
-#' Retrieve meta information about 13F-HR but not 13F-HR/A filings by BlackRock and UBS from 2014 to 2016.
+#' # Retrieve meta information about 13F-HR but not 13F-HR/A filings by BlackRock and UBS from 2014 to 2016.
 #' ubs_cik <- "1114446"
 #' blackrock_cik <- "1364742"
 #' get_list_of_filings(cik = c(blackrock_cik, ubs_cik), year = 2014:2016, filing_type = "13F-HR")
-
 #' @export
 
-get_list_of_filings <- function(cik, year, filing_type = "all", clean_col_names = TRUE) {
+get_list_of_filings <- function(cik, year, filing_type = "all") {
 
   # conditionally replace `filing_type` argument for helper functions
   if (any(filing_type %in% "all")) {
@@ -402,23 +400,16 @@ get_list_of_filings <- function(cik, year, filing_type = "all", clean_col_names 
   # -
   # abort if no data found
   if (nrow(subset_list) == 0) {
-    rlang::abort(message = "No data found.")
+    rlang::abort(message = "No data found for CIK.")
   }
 
-  # conditionally clean column names
-  if (clean_col_names) {
-    subset_list <- janitor::clean_names(subset_list)
-    return(subset_list)
-  } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
-    subset_list
-  }
   return(subset_list)
 }
 
 # cik_ubs <- "1114446"
 # cik_snb <- "1582202"
-# get_list_of_filings(cik = cik_ubs, year = 2013, clean_col_names = TRUE)
-# ubs_filings <- get_list_of_filings(cik = cik_ubs, year = 2013:2016, clean_col_names = TRUE)
+# get_list_of_filings(cik = cik_ubs, year = 2013,
+# ubs_filings <- get_list_of_filings(cik = cik_ubs, year = 2013:2016,
 # ubs_filings %>% count(form_type, sort = TRUE) %>% as_tibble()
 
 # functions to parse the filing
@@ -577,20 +568,18 @@ parse_13f_meta_other_managers_xml <- function(link_to_primary_doc){
 #' \code{get_13f_meta} retrieves and parses a company's 13F filings or the links to the filings.
 #' @param cik Central index key of a company.
 #' @param year Which year or time period of filings.
-#' @param clean_col_names Remove camel case from column names.
 #' @param amendments Include 13F-HR/A when retrieving — only works when \code{link_only = TRUE}. Defaults to FALSE.
 #' @param link_only Do not retrieve full filing but only link to it.
 #' @examples
 #' # Get and parse BlackRock's 2015 13F filings.
 #' cik_blackrock <- "1364742"
-#' get_13f_meta(cik = cik_blackrock, year = 2015, clean_col_names = TRUE, link_only = FALSE)
+#' get_13f_meta(cik = cik_blackrock, year = 2015, link_only = FALSE)
 #' # Get the links to the Swiss National Bank's 2016 to 2019 filings.
 #' cik_snb <- "1582202"
-#' get_13f_meta(cik = cik_snb, year = 2016:2019, amendments = TRUE, clean_col_names = TRUE, link_only = TRUE)
-
+#' get_13f_meta(cik = cik_snb, year = 2016:2019, amendments = TRUE, link_only = TRUE)
 #' @export
 
-get_13f_meta <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_only = FALSE) {
+get_13f_meta <- function(cik, year, amendments = FALSE, link_only = FALSE) {
   assertive::assert_is_not_null(cik, severity = "stop")
   assertive::assert_is_not_null(year, severity = "stop")
   assertive::assert_is_not_null(amendments, severity = "stop")
@@ -632,19 +621,11 @@ get_13f_meta <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, 
   # mutate(filing = purrr::map(link_to_filing, parse_13f))
 
   # filings
-
-  # # conditionally clean column names
-  # if (clean_col_names) {
-  #   filing_df_clean_col_names <- janitor::clean_names(filing_df)
-  #   print(filing_df_clean_col_names)
-  # } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
-  #   print(filing_df)
-  # }
 }
 
 
 # cik_blackrock <- "1364742"
-# get_13f_meta(cik = cik_blackrock, year = 2015, amendments = FALSE, clean_col_names = TRUE)
+# get_13f_meta(cik = cik_blackrock, year = 2015, amendments = FALSE,
 
 
 #' Retrieve 13F filings
@@ -652,22 +633,24 @@ get_13f_meta <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, 
 #' \code{get_13f} retrieves and parses a company's 13F filings along with meta information or the links to the filings.
 #' @param cik Central Index Key for filing entity, see https://www.sec.gov/edgar/searchedgar/companysearch.html
 #' @param year Year for which filings should be retrieved.
-#' @param clean_col_names Remove camel case from column names.
 #' @param amendments Include 13F-HR/A when retrieving — only works when \code{link_only = TRUE}. Defaults to FALSE.
 #' @param link_only Do not retrieve full filing but only link to it.
 #' @examples
 #' # Get and parse BlackRock's 2015 13F filings.
 #' cik_blackrock <- "1364742"
-#' get_13f(cik = cik_blackrock, year = 2015,
-#' clean_col_names = TRUE, link_only = FALSE)
+#' get_13f(
+#'   cik = cik_blackrock, year = 2015,
+#'   link_only = FALSE
+#' )
 #' # Get the links to the Swiss National Bank's 2016 to 2019 filings.
 #' cik_snb <- "1582202"
-#' snb <- get_13f(cik = cik_snb, year = 2016:2019,
-#' amendments = TRUE, clean_col_names = TRUE, link_only = TRUE)
-
+#' snb <- get_13f(
+#'   cik = cik_snb, year = 2016:2019,
+#'   amendments = TRUE, link_only = TRUE
+#' )
 #' @export
 
-get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_only = FALSE) {
+get_13f <- function(cik, year, amendments = FALSE, link_only = FALSE) {
   assertive::assert_is_not_null(cik, severity = "stop")
   assertive::assert_is_not_null(year, severity = "stop")
   assertive::assert_is_not_null(amendments, severity = "stop")
@@ -713,12 +696,6 @@ get_13f <- function(cik, year, amendments = FALSE, clean_col_names = TRUE, link_
     filings_plus_meta <- left_join(filings, primary_docs, by = c("filing_number"))
     message(emo::ji_glue(":+1:"), "Those filings are ready now, hehe.")
 
-    # conditionally clean column names and return
-    if (clean_col_names) {
-      filing_df_clean_col_names <- janitor::clean_names(filings_plus_meta)
-      return(filings_plus_meta)
-    } else if (rlang::is_empty(clean_col_names) | isFALSE(clean_col_names)) {
-      return(filings_plus_meta)
-    }
+    return(filings_plus_meta)
   }
 }

@@ -4,7 +4,7 @@
 \alias{get_list_of_filings}
 \title{Retrieve a list of a company's SEC filings.}
 \usage{
-get_list_of_filings(cik, year, filing_type = "all", clean_col_names = TRUE)
+get_list_of_filings(cik, year, filing_type = "all")
 }
 \arguments{
 \item{cik}{Central index key of a company.}
@@ -12,15 +12,6 @@ get_list_of_filings(cik, year, filing_type = "all", clean_col_names = TRUE)
 \item{year}{Which year or time period of filings.}
 
 \item{filing_type}{Type of filing, defaults to all.}
-
-\item{clean_col_names}{Remove camel case from column names. Defaults to TRUE.
-# Retrieve all filings made by the Swiss National Bank in 2013.
-swiss_national_bank_cik <- "1582202"
-get_list_of_filings(cik = swiss_national_bank_cik, 2013)
-Retrieve meta information about 13F-HR but not 13F-HR/A filings by BlackRock and UBS from 2014 to 2016.
-ubs_cik <- "1114446"
-blackrock_cik <- "1364742"
-get_list_of_filings(cik = c(blackrock_cik, ubs_cik), year = 2014:2016, filing_type = "13F-HR")}
 }
 \description{
 \code{get_list_of_filings} searches the EDGAR archive for any
@@ -29,4 +20,13 @@ filings a company has submitted in a given year.
 \details{
 The function returns a tibble with the .txt links to a company's filings,
 some meta information for said filings itself and the meta information.
+}
+\examples{
+# Retrieve all filings made by the Swiss National Bank in 2013.
+swiss_national_bank_cik <- "1582202"
+get_list_of_filings(cik = swiss_national_bank_cik, 2013)
+# Retrieve meta information about 13F-HR but not 13F-HR/A filings by BlackRock and UBS from 2014 to 2016.
+ubs_cik <- "1114446"
+blackrock_cik <- "1364742"
+get_list_of_filings(cik = c(blackrock_cik, ubs_cik), year = 2014:2016, filing_type = "13F-HR")
 }
