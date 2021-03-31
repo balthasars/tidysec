@@ -39,19 +39,22 @@ br_2015 <- get_13f(cik = cik_blackrock, year = 2015, amendments = FALSE)
 #> Run `forget_tidysec_cache()` to delete the master indices if you no longer need them.
 #> 👍Those filings are ready now, hehe.
 br_2015
-#> # A tibble: 4 x 21
+#> # A tibble: 4 x 25
 #>   cik    company_name  form_type date_filed quarter link_to_filing       filing 
 #>   <chr>  <chr>         <chr>          <dbl>   <dbl> <chr>                <list> 
 #> 1 13647… BlackRock In… 13F-HR          2015       1 https://www.sec.gov… <tibbl…
 #> 2 13647… BlackRock In… 13F-HR          2015       2 https://www.sec.gov… <tibbl…
 #> 3 13647… BlackRock In… 13F-HR          2015       3 https://www.sec.gov… <tibbl…
 #> 4 13647… BlackRock In… 13F-HR          2015       4 https://www.sec.gov… <tibbl…
-#> # … with 14 more variables: filing_number <chr>, submissionType <chr>,
+#> # … with 18 more variables: filing_number <chr>, submissionType <chr>,
 #> #   filingManager <chr>, reportType <chr>, periodOfReport <chr>,
 #> #   reportCalendarOrQuarter <chr>, form13FFileNumber <chr>,
 #> #   stateOrCountry <chr>, signatureDate <chr>, tableEntryTotal <chr>,
-#> #   tableValueTotal <chr>, otherIncludedManagersCount <chr>,
-#> #   otherManagers2Info <chr>, link_to_primary_doc <chr>
+#> #   tableValueTotal <chr>, otherIncludedManagersCount <chr>, coverPage <chr>,
+#> #   link_to_primary_doc <chr>, other_included_managers_name <list>,
+#> #   otherManagerForm13FFileNumber <list>,
+#> #   other_managers_reporting_for_this_manager_file_number <list>,
+#> #   other_managers_reporting_for_this_manager <list>
 ```
 
 To work with the filing(s), use `tidyr::unnest()`:
@@ -59,7 +62,7 @@ To work with the filing(s), use `tidyr::unnest()`:
 ``` r
 br_2015 %>% 
   tidyr::unnest(filing)
-#> # A tibble: 31,298 x 30
+#> # A tibble: 31,298 x 34
 #>    cik    company_name form_type date_filed quarter link_to_filing  issuer class
 #>    <chr>  <chr>        <chr>          <dbl>   <dbl> <chr>           <chr>  <chr>
 #>  1 13647… BlackRock I… 13F-HR          2015       1 https://www.se… 1ST S… COM  
@@ -72,15 +75,18 @@ br_2015 %>%
 #>  8 13647… BlackRock I… 13F-HR          2015       1 https://www.se… 3M CO  COM  
 #>  9 13647… BlackRock I… 13F-HR          2015       1 https://www.se… 3M CO  COM  
 #> 10 13647… BlackRock I… 13F-HR          2015       1 https://www.se… 3M CO  COM  
-#> # … with 31,288 more rows, and 22 more variables: cusip <chr>, value <dbl>,
+#> # … with 31,288 more rows, and 26 more variables: cusip <chr>, value <dbl>,
 #> #   shrsorprnamt <dbl>, sshprnamttype <chr>, investment_discretion <chr>,
 #> #   voting_authority_sole <dbl>, voting_authority_shared <dbl>,
 #> #   voting_authority_none <dbl>, filing_number <chr>, submissionType <chr>,
 #> #   filingManager <chr>, reportType <chr>, periodOfReport <chr>,
 #> #   reportCalendarOrQuarter <chr>, form13FFileNumber <chr>,
 #> #   stateOrCountry <chr>, signatureDate <chr>, tableEntryTotal <chr>,
-#> #   tableValueTotal <chr>, otherIncludedManagersCount <chr>,
-#> #   otherManagers2Info <chr>, link_to_primary_doc <chr>
+#> #   tableValueTotal <chr>, otherIncludedManagersCount <chr>, coverPage <chr>,
+#> #   link_to_primary_doc <chr>, other_included_managers_name <list>,
+#> #   otherManagerForm13FFileNumber <list>,
+#> #   other_managers_reporting_for_this_manager_file_number <list>,
+#> #   other_managers_reporting_for_this_manager <list>
 ```
 
 Amendments to 13F filings (13F-HR/A) cannot be parsed yet. However, you
