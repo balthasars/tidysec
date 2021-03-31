@@ -496,11 +496,32 @@ parse_13f_meta_xml <- function(link_to_primary_doc) {
     tableEntryTotal = "//summaryPage/tableEntryTotal",
     tableValueTotal = "//summaryPage/tableValueTotal",
     otherIncludedManagersCount = "//summaryPage/otherIncludedManagersCount",
-    otherManagers2Info = "//summaryPage/otherManagers2Info"
+    coverPage = "//coverPage/reportCalendarOrQuarter",
+    isAmendment = "//coverPage/isAmendment",
+    amendmentNo = "//coverPage/amendmentNo",
+    amendmentType = "//coverPage/amendmentInfo"
+  )
+
+  # more meta information on the filings
+  xpaths_other_managers_included <- list(
+    otherManagerName = "//summaryPage/otherManagers2Info/otherManager2/otherManager/name",
+    otherManagerForm13FFileNumber = "//summaryPage/otherManagers2Info/otherManager2/otherManager/form13FFileNumber",
+    otherManagersInfootherManagerform13FFileNumber = "//coverPage/otherManagersInfo/otherManager/form13FFileNumber",
+    otherManagersInfootherManagerform13Fname = "//coverPage/otherManagersInfo/otherManager/name"
   )
 
   # iterate over xpaths and create a wide tibble
-  purrr::map(xpaths, xml_find_all_then_text, nodes = meta_doc_xml) %>%
+  other_man <- purrr::map(xpaths_other_managers_included, xml_find_all_then_text, nodes = meta_doc_xml) %>%
+    tibble::enframe() %>%
+    tidyr::pivot_wider() %>%
+    dplyr::rename(
+      other_included_managers_file_number = otherManagerName,
+      other_included_managers_name = otherManagerName,
+      other_managers_reporting_for_this_manager_file_number = otherManagersInfootherManagerform13FFileNumber,
+      other_managers_reporting_for_this_manager = otherManagersInfootherManagerform13Fname
+    )
+  # iterate over xpaths and create a wide tibble
+  base <- purrr::map(xpaths, xml_find_all_then_text, nodes = meta_doc_xml) %>%
     tibble::enframe() %>%
     tidyr::unnest(value) %>%
     tidyr::pivot_wider() %>%
@@ -508,57 +529,15 @@ parse_13f_meta_xml <- function(link_to_primary_doc) {
     dplyr::mutate(link_to_primary_doc = link_to_primary_doc) %>%
     # add filing number to join with actual filing
     dplyr::mutate(filing_number = dirname(link_to_primary_doc) %>% basename())
+
+  dplyr::bind_cols(base, other_man)
 }
 
-parse_13f_meta_other_managers_included_xml <- function(link_to_primary_doc) {
-
-  # read document with information about filing
-
-  # TODO: add checks for HTTP error codes
-  # response <- httr::GET(link)
-  # parsed <- httr::content(response, as = "text", encoding = "UTF-8")
-
-  meta_doc_xml <- get_check_parse_xml(url = link_to_primary_doc) %>%
-    xml2::xml_ns_strip()
-
-  # meta-information of interest for a given filing
-  xpaths <- list(
-    otherManagersInfootherManagerform13FFileNumber = "//coverPage/otherManagersInfo/otherManager/form13FFileNumber",
-    otherManagersInfootherManagerform13Fname = "//coverPage/otherManagersInfo/otherManager/name"
-  )
-
-  # iterate over xpaths and create a wide tibble
-  purrr::map_df(xpaths, xml_find_all_then_text, nodes = meta_doc_xml)
-  # dplyr::mutate(link_to_primary_doc = link_to_primary_doc)
-}
 
 # "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
-#   parse_13f_meta_other_managers_included_xml()
+#   parse_13f_meta_xml()
 
-parse_13f_meta_other_managers_xml <- function(link_to_primary_doc) {
 
-  # read document with information about filing
-
-  # TODO: add checks for HTTP error codes
-  # response <- httr::GET(link)
-  # parsed <- httr::content(response, as = "text", encoding = "UTF-8")
-
-  meta_doc_xml <- xml2::read_xml(link_to_primary_doc) %>%
-    xml2::xml_ns_strip()
-
-  # meta-information of interest for a given filing
-  xpaths <- list(
-    otherManagerName = "//summaryPage/otherManagers2Info/otherManager2/otherManager/name",
-    otherManagerForm13FFileNumber = "//summaryPage/otherManagers2Info/otherManager2/otherManager/form13FFileNumber"
-  )
-
-  # iterate over xpaths and create a wide tibble
-  purrr::map_df(xpaths, xml_find_all_then_text, nodes = meta_doc_xml) %>%
-    dplyr::mutate(link_to_primary_doc = link_to_primary_doc)
-}
-
-# "https://www.sec.gov/Archives/edgar/data/861177/000086117720000005/primary_doc.xml" %>%
-#   parse_13f_meta_other_managers_xml()
 
 #' Retrieve Meta Information for a 13F filing.
 #'
