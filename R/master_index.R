@@ -48,13 +48,24 @@ download_single_master_index_file <- function(link) {
     }
   )))
 
+  response <- httr::RETRY(url = link, verb = "GET")
+
+  # check if status code is fine
+  assertive::assert_are_set_equal(httr::status_code(response), 200, severity = "stop")
+
+  content <- httr::content(response, as = "raw")
+
+
   master_index <- vroom::vroom(
-    file = link,
+    file = content,
     skip = 11, delim = "|",
     col_names = c("cik", "company_name", "form_type", "date_filed", "filename"),
     col_types = c("cccnc")
   ) %>%
     tibble::add_column(quarter = quarter_number)
+
+  # Sys.sleep(3)
+  master_index
 }
 
 # set cache
