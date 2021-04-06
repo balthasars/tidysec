@@ -26,3 +26,14 @@ test_that("`get_13f()` returns data frame with > 0 rows for multiple portfolio `
   expect_gt(nrow(test_13f_multiple_banks), 0)
 
 })
+
+# test for multiple portfolios from 2021
+multiple_banks <- c("1727588", "824468", "1321482")
+test_13f_multiple_banks_2021 <- get_13f(cik = multiple_banks, year = 2021)
+
+test_that("`get_13f()` returns data frame with > 0 rows for multiple portfolio `", {
+
+  expect_s3_class(test_13f_multiple_banks_2021, "data.frame")
+  expect_gt(nrow(test_13f_multiple_banks_2021), 0)
+
+})
