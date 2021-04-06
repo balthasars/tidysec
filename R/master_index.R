@@ -151,20 +151,13 @@ subset_master_indices <- function(master_index_dt, form_type_in = NULL, cik_comp
   # conditionally subset filings depending on function arguments
   if (is.null(form_type_in)) {
     links <- master_index_dt %>%
-      # dtplyr::lazy_dt() %>%
       dplyr::filter(cik %in% cik_company)
-    # dplyr::as_tibble()
   } else {
+    # browser()
     # must be `&` not `,` to concatenate conditions!
     links <- master_index_dt %>%
-      # dtplyr::lazy_dt() %>%
       dplyr::filter(form_type %in% form_type_in & cik %in% cik_company)
-    # dplyr::as_tibble()
-    # master_index_dt[form_type %in% form_type_in & cik %in% cik_company] %>%
-    # as_tibble()
   }
-
-  # browser()
 
   # # TODO: stop execution in smart way when this fails, no mere `stop()`
   if (rlang::is_empty(links)) {
