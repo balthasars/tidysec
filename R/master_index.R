@@ -80,7 +80,7 @@ mem_download_single_master_index_file <- memoise::memoise(download_single_master
 #' of master index files in which the links to all filings are
 #' document.
 
-# #' @export
+#' @export
 forget_tidysec_cache <- function() {
   result <- memoise::forget(mem_download_single_master_index_file)
   if (result) {
