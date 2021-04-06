@@ -7,6 +7,7 @@ get_check_parse_xml <- function(url) {
   # check if status code is fine
   assertive::assert_are_set_equal(httr::status_code(response), 200, severity = "stop")
   parsed <- httr::content(response, as = "text", encoding = "UTF-8")
+  Sys.sleep(1)
 
   xml2::read_xml(parsed)
 }
