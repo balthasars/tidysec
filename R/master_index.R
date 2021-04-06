@@ -119,6 +119,7 @@ get_master_indices_for_single_year <- function(year = NULL) {
   master_index_lst <- purrr::map(master_index_links, mem_download_single_master_index_file)
   # bind data frames together
   master_index_dt <- data.table::rbindlist(master_index_lst)
+  master_index_dt
 }
 
 # helper for `subset_master_indices()`
