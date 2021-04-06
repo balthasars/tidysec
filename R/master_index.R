@@ -3,7 +3,7 @@ link_to_archives <- "https://www.sec.gov/Archives/edgar/full-index"
 
 # `get_check_parse_xml()` ensures HTTP response codes equal 200
 get_check_parse_xml <- function(url) {
-  response <- httr::GET(url)
+  response <- httr::RETRY(url = url, verb = "GET")
   # check if status code is fine
   assertive::assert_are_set_equal(httr::status_code(response), 200, severity = "stop")
   parsed <- httr::content(response, as = "text", encoding = "UTF-8")
